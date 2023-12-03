@@ -22,11 +22,11 @@ import {ERC2981, IERC165} from "@openzeppelin/contracts/token/common/ERC2981.sol
 import {IERC721Receiver} from "@openzeppelin/contracts/interfaces/IERC721Receiver.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import {INFTLocker} from "./interfaces/INFTLocker.sol";
+import {IYieldLocker} from "./interfaces/IYieldLocker.sol";
 
 // This is a 4 year locker contract very similar to Curve and Solidly finance.
 
-contract YieldLocker is ReentrancyGuard, INFTLocker, ERC2981 {
+contract YieldLocker is ReentrancyGuard, IYieldLocker, ERC2981 {
     uint256 internal constant WEEK = 1 weeks;
     uint256 internal constant MAXTIME = 4 * 365 * 86400;
     int128 internal constant iMAXTIME = 4 * 365 * 86400;

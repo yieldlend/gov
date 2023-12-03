@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {IERC721} from "@openzeppelin/contracts/interfaces/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/interfaces/IERC721Receiver.sol";
 
-interface INFTLocker is IERC721 {
+interface IYieldLocker is IERC721 {
     function balanceOfNFT(uint256) external view returns (uint256);
 
     function epoch() external view returns (uint256);
