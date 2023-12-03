@@ -19,11 +19,10 @@ pragma solidity ^0.8.9;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IBondingCurveSale} from "./interfaces/IBondingCurveSale.sol";
 
 /// @title  A bonding curve sale that is accepts ether for YIELD tokens.
-contract BondingCurveSale is Ownable {
-    event Minted(address indexed who, uint256 tokens, uint256 eth);
-
+contract BondingCurveSale is IBondingCurveSale, Ownable {
     uint256 private constant PRECISION = 1e18;
 
     address public destination;
@@ -43,9 +42,7 @@ contract BondingCurveSale is Ownable {
         ethToRaise = _ethToRaise;
     }
 
-    /// Returns how much tokens should be given out considering ETH raised
-    /// @param ethRaised The amount of ETH raised
-    /// @return The amount of tokens that should be sold
+    /// @inheritdoc IBondingCurveSale
     function bondingCurveETH(uint256 _ethRaised) public view returns (uint256) {
         uint256 percentage = ((_ethRaised * PRECISION) / ethToRaise);
         uint256 reversed = PRECISION - percentage;
@@ -54,8 +51,8 @@ contract BondingCurveSale is Ownable {
                 (PRECISION - ((reversed * reversed) / PRECISION))) / PRECISION;
     }
 
-    /// @dev                Mint new tokens with ether
-    function mint() public payable {
+    /// @inheritdoc IBondingCurveSale
+    function mint() external payable {
         // calculate tokens sold baesd on the ETH raised
         ethRaised += msg.value;
         uint256 newTokensSold = bondingCurveETH(ethRaised);
@@ -74,11 +71,13 @@ contract BondingCurveSale is Ownable {
         emit Minted(msg.sender, reserveSoldToBuyer, msg.value);
     }
 
+    /// @inheritdoc IBondingCurveSale
     function setDestination(address _destination) external onlyOwner {
         destination = _destination;
     }
 
-    function withdrawStuckTokens(address tkn) public onlyOwner {
+    /// @inheritdoc IBondingCurveSale
+    function withdrawStuckTokens(address tkn) external onlyOwner {
         bool success;
         if (tkn == address(0))
             (success, ) = address(msg.sender).call{
