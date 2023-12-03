@@ -23,29 +23,28 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /// @title  A bonding curve sale that is accepts ether for YIELD tokens.
 contract BondingCurveSale is Ownable {
     event Minted(uint256 amount, uint256 totalCost);
-    event Burned(uint256 amount, uint256 reward);
 
-    uint256 private constant PRECISION = 10000000000;
+    uint256 private constant PRECISION = 1e18;
 
     address public destination;
     IERC20 public token;
-    uint256 public poolBalance;
-    uint256 public minted;
-    uint8 public exponent;
 
-    /// @dev constructor    Initializes the bonding curve
-    constructor(IERC20 _token, uint8 _exponent) {
+    uint256 public reserveToSell;
+    uint256 public ethToRaise;
+
+    constructor(IERC20 _token, uint256 _reserveToSell, uint256 _ethToRaise) {
         destination = msg.sender;
-        exponent = _exponent;
         token = _token;
+        reserveToSell = _reserveToSell;
+        ethToRaise = _ethToRaise;
     }
 
-    /// @dev        Calculate the integral from 0 to t
-    /// @param t    The number to integrate to
-    function curveIntegral(uint256 t) internal view returns (uint256) {
-        uint256 nexp = exponent + 1;
-        // Calculate integral of t^exponent
-        return ((PRECISION / (nexp)) * (t ** nexp)) / (PRECISION);
+    /// Returns how much tokens should be given out considering ETH raised
+    /// @param ethRaised The amount of ETH raised
+    /// @return The amount of tokens that should be sold
+    function bondingCurveETH(uint256 ethRaised) public view returns (uint256) {
+        uint256 percentage = PRECISION - (ethRaised * PRECISION) / ethToRaise;
+        return reserveToSell * (PRECISION - (percentage * percentage));
     }
 
     function priceToMint(uint256 numTokens) public view returns (uint256) {

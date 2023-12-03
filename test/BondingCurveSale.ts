@@ -5,7 +5,7 @@ import {
 import { expect } from "chai";
 import { e18, deployFixture as fixture } from "./fixtures/core";
 
-describe("EthBondingCurveSale", function () {
+describe("BondingCurveSale", function () {
   it("Should deploy properly", async function () {
     const { bondingCurveSale, vestedToken, owner } = await loadFixture(fixture);
     expect(await bondingCurveSale.token()).to.equal(vestedToken.target);
