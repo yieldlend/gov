@@ -21,9 +21,8 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Burnable} from "./interfaces/IERC20Burnable.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {IStreamedVesting} from "./interfaces/IStreamedVesting.sol";
-import {IUniswapV2Factory, IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
 import {IYieldLocker} from "./interfaces/IYieldLocker.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IBonusPool} from "./interfaces/IBonusPool.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract StreamedVesting is IStreamedVesting, Initializable {
@@ -33,7 +32,7 @@ contract StreamedVesting is IStreamedVesting, Initializable {
     IERC20Burnable public vestedToken;
     IYieldLocker public locker;
     uint256 public lastId;
-    address public bonusPool;
+    IBonusPool public bonusPool;
     uint256 public duration = 3 * 30 days; // 3 months vesting
 
     mapping(uint256 => VestInfo) public vests;
@@ -44,7 +43,7 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         IERC20 _underlying,
         IERC20Burnable _vestedToken,
         IYieldLocker _locker,
-        address _bonusPool
+        IBonusPool _bonusPool
     ) external initializer {
         underlying = _underlying;
         vestedToken = _vestedToken;
@@ -82,9 +81,13 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         vests[id] = vest;
 
         // check if we can give a 20% bonus for 4 year staking
-        uint256 bonusAmount = lockAmount / 5;
-        if (underlying.balanceOf(bonusPool) >= bonusAmount) {
-            underlying.transferFrom(bonusPool, address(this), bonusAmount);
+        uint256 bonusAmount = bonusPool.calculateBonus(lockAmount);
+        if (underlying.balanceOf(address(bonusPool)) >= bonusAmount) {
+            underlying.transferFrom(
+                address(bonusPool),
+                address(this),
+                bonusAmount
+            );
             lockAmount += bonusAmount;
         }
 
@@ -96,15 +99,15 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         VestInfo memory vest = vests[id];
         require(msg.sender == vest.who, "not owner");
 
-        uint256 claimable = _claimable(vest);
-        require(claimable > 0, "no claimable amount");
+        uint256 val = _claimable(vest);
+        require(val > 0, "no claimable amount");
 
         // update
-        vest.claimed = claimable;
+        vest.claimed = val;
         vests[id] = vest;
 
         // reward
-        underlying.transfer(msg.sender, claimable);
+        underlying.transfer(msg.sender, val);
     }
 
     function claimVestEarlyWithPenalty(uint256 id) external {
@@ -151,15 +154,12 @@ contract StreamedVesting is IStreamedVesting, Initializable {
     function claimablePenalty(uint256 id) external view returns (uint256) {
         VestInfo memory vest = vests[id];
 
-        uint256 claimable = _claimable(
-            vest.amount,
-            vest.startAt,
-            block.timestamp
-        ) - vest.claimed;
+        uint256 val = _claimable(vest.amount, vest.startAt, block.timestamp) -
+            vest.claimed;
 
         uint256 penalty = _penalty(vest);
 
-        return claimable - ((claimable * penalty) / 1e18);
+        return val - ((val * penalty) / 1e18);
     }
 
     function _claimable(VestInfo memory vest) internal view returns (uint256) {

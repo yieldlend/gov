@@ -29,7 +29,7 @@
     "zksync-web3": "^0.14.3"
   },
   "scripts": {
-    "test": "NODE_ENV=test hardhat test --network zkSyncTestnet",
+    "test": "NODE_ENV=test hardhat test",
     "compile": "yarn hardhat compile",
     "deploy": "yarn hardhat deploy-zksync --script deploy-feed.ts",
     "update-feed": "yarn hardhat deploy-zksync --script update-feed.ts"

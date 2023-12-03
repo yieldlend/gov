@@ -12,7 +12,11 @@ const MNEMONIC = process.env.MNEMONIC || "";
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   networks: {
-    hardhat: {},
+    hardhat: {
+      forking: {
+        url: "https://rpc.ankr.com/base",
+      },
+    },
     base: {
       url: "https://mainnet.base.org",
       chainId: 8453,

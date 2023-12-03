@@ -17,13 +17,11 @@ pragma solidity ^0.8.9;
 // Telegram: https://t.me/yieldlend
 // Twitter: https://twitter.com/yieldlend
 
-// import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-/// @title  EthBondingCurvedToken - A bonding curve
-///         implementation that is backed by ether.
-abstract contract EthBondingCurvedToken is Ownable {
+/// @title  A bonding curve sale that is accepts ether for YIELD tokens.
+contract EthBondingCurveSale is Ownable {
     event Minted(uint256 amount, uint256 totalCost);
     event Burned(uint256 amount, uint256 reward);
 
@@ -36,8 +34,8 @@ abstract contract EthBondingCurvedToken is Ownable {
     uint8 public exponent;
 
     /// @dev constructor    Initializes the bonding curve
-    constructor(address _destination, IERC20 _token, uint8 _exponent) {
-        destination = _destination;
+    constructor(IERC20 _token, uint8 _exponent) {
+        destination = msg.sender;
         exponent = _exponent;
         token = _token;
     }

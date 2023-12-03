@@ -77,7 +77,7 @@ contract YieldLend is ERC20Burnable, Ownable {
             0x6BDED42c6DA8FBf0d2bA55B2fa120C5e0c8D7891
         );
 
-        weth = IWETH(uniswapV2Router.WETH());
+        weth = IWETH(0x4200000000000000000000000000000000000006);
         _approve(address(this), address(uniswapV2Router), type(uint256).max);
 
         maxTransaction = supply;
