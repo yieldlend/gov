@@ -16,7 +16,11 @@ export async function deployFixture() {
   const yieldLocker = await YieldLocker.deploy(token.target);
 
   const BondingCurve = await ethers.getContractFactory("BondingCurveSale");
-  const bondingCurveSale = await BondingCurve.deploy(vestedToken.target, 1);
+  const bondingCurveSale = await BondingCurve.deploy(
+    vestedToken.target,
+    e18 * 20000000n,
+    e18 * 500n
+  );
 
   const StreamedVesting = await ethers.getContractFactory("StreamedVesting");
   const streamedVesting = await StreamedVesting.deploy();

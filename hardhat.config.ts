@@ -2,6 +2,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import dotenv from "dotenv";
 dotenv.config();
 
+import "@typechain/hardhat";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 import "hardhat-abi-exporter";
@@ -11,6 +12,12 @@ const MNEMONIC = process.env.MNEMONIC || "";
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
+  typechain: {
+    target: "ethers-v6",
+    alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
+    externalArtifacts: ["externalArtifacts/*.json"], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
+    dontOverrideCompile: false, // defaults to false
+  },
   networks: {
     hardhat: {
       forking: {
