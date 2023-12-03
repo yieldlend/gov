@@ -23,11 +23,8 @@ import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.s
 import {IStreamedVesting} from "./interfaces/IStreamedVesting.sol";
 import {IYieldLocker} from "./interfaces/IYieldLocker.sol";
 import {IBonusPool} from "./interfaces/IBonusPool.sol";
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract StreamedVesting is IStreamedVesting, Initializable {
-    using SafeMath for uint256;
-
     IERC20 public underlying;
     IERC20Burnable public vestedToken;
     IYieldLocker public locker;

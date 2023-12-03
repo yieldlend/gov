@@ -30,12 +30,12 @@ contract BonusPool is Ownable, IBonusPool {
         _setBonusBps(20000); // 20%
     }
 
-    function setBonusBps(uint256 amount) external onlyOwner {
-        _setBonusBps(amount);
-    }
-
     function calculateBonus(uint256 amount) external view returns (uint256) {
         return (amount * bonusBps) / PCT_100;
+    }
+
+    function setBonusBps(uint256 amount) external onlyOwner {
+        _setBonusBps(amount);
     }
 
     function withdrawStuckTokens(address tkn) public onlyOwner {

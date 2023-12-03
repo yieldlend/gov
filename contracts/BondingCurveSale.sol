@@ -34,8 +34,13 @@ contract BondingCurveSale is IBondingCurveSale, Ownable {
     uint256 public ethRaised;
     uint256 public reserveSold;
 
-    constructor(IERC20 _token, uint256 _reserveToSell, uint256 _ethToRaise) {
-        destination = msg.sender;
+    constructor(
+        address _destination,
+        IERC20 _token,
+        uint256 _reserveToSell,
+        uint256 _ethToRaise
+    ) {
+        destination = _destination;
         token = _token;
         reserveToSell = _reserveToSell;
         reserveSold = 0;

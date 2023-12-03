@@ -17,6 +17,7 @@ export async function deployFixture() {
 
   const BondingCurve = await ethers.getContractFactory("BondingCurveSale");
   const bondingCurveSale = await BondingCurve.deploy(
+    token.target,
     vestedToken.target,
     e18 * 20000000n,
     e18 * 500n

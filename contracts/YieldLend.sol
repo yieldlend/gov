@@ -24,8 +24,9 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {IUniswapV2Factory, IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
 import {IUniswapV2Pair} from "./interfaces/IUniswapV2Pair.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
+import {IYieldLend} from "./interfaces/IYieldLend.sol";
 
-contract YieldLend is ERC20Burnable, Ownable {
+contract YieldLend is IYieldLend, ERC20Burnable, Ownable {
     using SafeMath for uint256;
 
     IUniswapV2Router02 public immutable uniswapV2Router;
@@ -53,19 +54,6 @@ contract YieldLend is ERC20Burnable, Ownable {
 
     mapping(address => bool) private _isExcludedFromFees;
     mapping(address => bool) private _automatedMarketMakerPairs;
-
-    event ExcludeFromLimits(address indexed account, bool isExcluded);
-    event ExcludeFromFees(address indexed account, bool isExcluded);
-    event SetAutomatedMarketMakerPair(address indexed pair, bool indexed value);
-    event MarketingWalletUpdated(
-        address indexed newWallet,
-        address indexed oldWallet
-    );
-    event SwapAndLiquify(
-        uint256 tokensSwapped,
-        uint256 ethReceived,
-        uint256 tokensIntoLiquidity
-    );
 
     constructor() ERC20("YieldLend", "YIELD") {
         uint256 supply = 100_000_000_000 ether;
