@@ -23,7 +23,7 @@ describe("BondingCurveSale", function () {
     );
   });
 
-  it.only("Should allow a user to get tokens if he invests 1 ETH properly", async function () {
+  it("Should allow a user to get tokens if he invests 1 ETH properly", async function () {
     const { bondingCurveSale, otherAccount, vestedToken } = await loadFixture(
       fixture
     );
