@@ -13,6 +13,19 @@ describe("BondingCurveSale", function () {
     expect(await bondingCurveSale.destination()).to.equal(owner.address);
   });
 
+  it.only("Should test bondingCurveETH properly", async function () {
+    const { bondingCurveSale } = await loadFixture(fixture);
+    expect(await bondingCurveSale.bondingCurveETH(e18)).to.equal(
+      "79920000000000000000000"
+    );
+    expect(await bondingCurveSale.bondingCurveETH(e18 * 100n)).to.equal(
+      "7200000000000000000000000"
+    );
+    expect(await bondingCurveSale.bondingCurveETH(e18 * 500n)).to.equal(
+      "20000000000000000000000000"
+    );
+  });
+
   describe("For a user who has some vested tokens", function () {
     // todo
 

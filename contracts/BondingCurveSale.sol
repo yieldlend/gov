@@ -22,7 +22,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title  A bonding curve sale that is accepts ether for YIELD tokens.
 contract BondingCurveSale is Ownable {
-    event Minted(uint256 amount, uint256 totalCost);
+    event Minted(address indexed who, uint256 tokens, uint256 eth);
 
     uint256 private constant PRECISION = 1e18;
 
@@ -32,10 +32,14 @@ contract BondingCurveSale is Ownable {
     uint256 public reserveToSell;
     uint256 public ethToRaise;
 
+    uint256 public ethRaised;
+    uint256 public reserveSold;
+
     constructor(IERC20 _token, uint256 _reserveToSell, uint256 _ethToRaise) {
         destination = msg.sender;
         token = _token;
         reserveToSell = _reserveToSell;
+        reserveSold = 0;
         ethToRaise = _ethToRaise;
     }
 
@@ -43,32 +47,31 @@ contract BondingCurveSale is Ownable {
     /// @param ethRaised The amount of ETH raised
     /// @return The amount of tokens that should be sold
     function bondingCurveETH(uint256 ethRaised) public view returns (uint256) {
-        uint256 percentage = PRECISION - (ethRaised * PRECISION) / ethToRaise;
-        return reserveToSell * (PRECISION - (percentage * percentage));
-    }
-
-    function priceToMint(uint256 numTokens) public view returns (uint256) {
-        return curveIntegral(minted + (numTokens)) - (poolBalance);
+        uint256 percentage = ((ethRaised * PRECISION) / ethToRaise);
+        uint256 reversed = PRECISION - percentage;
+        return
+            (reserveToSell *
+                (PRECISION - ((reversed * reversed) / PRECISION))) / PRECISION;
     }
 
     /// @dev                Mint new tokens with ether
-    /// @param numTokens    The number of tokens you want to mint
-    function mint(uint256 numTokens) public payable {
-        uint256 priceForTokens = priceToMint(numTokens);
-        require(msg.value >= priceForTokens);
+    function mint() public payable {
+        // calculate tokens sold baesd on the ETH raised
+        ethRaised += msg.value;
+        uint256 newTokensSold = bondingCurveETH(ethRaised);
+        uint256 reserveSoldToBuyer = newTokensSold - reserveSold;
+        reserveSold = newTokensSold;
 
-        token.transfer(msg.sender, numTokens);
-        minted += numTokens;
-        poolBalance = poolBalance + (priceForTokens);
+        // send 4/5th to LP
+        payable(address(token)).transfer((msg.value * 4) / 5);
 
-        // refund balance to the users
-        if (msg.value > priceForTokens) {
-            payable(msg.sender).transfer(msg.value - priceForTokens);
-        }
+        // send 1/5th to marketing wallet
+        payable(destination).transfer(msg.value / 5);
 
-        payable(destination).transfer(priceForTokens);
+        // give the user the tokens that were sold
+        token.transfer(msg.sender, reserveSoldToBuyer);
 
-        emit Minted(numTokens, priceForTokens);
+        emit Minted(msg.sender, reserveSoldToBuyer, msg.value);
     }
 
     function setDestination(address _destination) external onlyOwner {
