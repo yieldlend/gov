@@ -39,8 +39,6 @@ contract YieldLend is ERC20Burnable, Ownable {
     bool public swapEnabled;
     bool private _swapping;
 
-    uint256 public maxTransaction;
-    uint256 public maxWallet;
     uint256 public swapTokensAtAmount;
 
     uint256 public sellTotalFees;
@@ -54,7 +52,6 @@ contract YieldLend is ERC20Burnable, Ownable {
     uint256 private _previousFee;
 
     mapping(address => bool) private _isExcludedFromFees;
-    mapping(address => bool) private _isExcludedFromMaxTransaction;
     mapping(address => bool) private _automatedMarketMakerPairs;
 
     event ExcludeFromLimits(address indexed account, bool isExcluded);
@@ -80,8 +77,6 @@ contract YieldLend is ERC20Burnable, Ownable {
         weth = IWETH(0x4200000000000000000000000000000000000006);
         _approve(address(this), address(uniswapV2Router), type(uint256).max);
 
-        maxTransaction = supply;
-        maxWallet = supply;
         swapTokensAtAmount = (supply * 1) / 1000;
 
         _sellMarketingFee = 300; // 3% marketing
@@ -97,12 +92,6 @@ contract YieldLend is ERC20Burnable, Ownable {
         excludeFromFees(address(0), true);
         excludeFromFees(deadAddress, true);
         excludeFromFees(admin, true);
-
-        excludeFromMaxTransaction(owner(), true);
-        excludeFromMaxTransaction(address(this), true);
-        excludeFromMaxTransaction(deadAddress, true);
-        excludeFromMaxTransaction(address(uniswapV2Router), true);
-        excludeFromMaxTransaction(admin, true);
 
         _mint(owner(), supply);
     }
@@ -125,7 +114,6 @@ contract YieldLend is ERC20Burnable, Ownable {
         );
 
         _setAutomatedMarketMakerPair(address(uniswapV2Pair), true);
-        excludeFromMaxTransaction(address(uniswapV2Pair), true);
     }
 
     function yearnAgain() public onlyOwner {
@@ -137,14 +125,6 @@ contract YieldLend is ERC20Burnable, Ownable {
         require(!tradingActive, "Trading already active.");
         tradingActive = true;
         swapEnabled = true;
-    }
-
-    function excludeFromMaxTransaction(
-        address account,
-        bool value
-    ) public onlyOwner {
-        _isExcludedFromMaxTransaction[account] = value;
-        emit ExcludeFromLimits(account, value);
     }
 
     function setSwapEnabled(bool value) public onlyOwner {
@@ -161,22 +141,6 @@ contract YieldLend is ERC20Burnable, Ownable {
             "ERC20: Swap amount cannot be higher than 0.5% total supply."
         );
         swapTokensAtAmount = amount;
-    }
-
-    function setMaxWalletAndMaxTransaction(
-        uint256 _maxTransaction,
-        uint256 _maxWallet
-    ) public onlyOwner {
-        require(
-            _maxTransaction >= ((totalSupply() * 5) / 1000),
-            "ERC20: Cannot set maxTxn higher than 0.5%"
-        );
-        require(
-            _maxWallet >= ((totalSupply() * 5) / 1000),
-            "ERC20: Cannot set maxWallet higher than 0.5%"
-        );
-        maxTransaction = _maxTransaction;
-        maxWallet = _maxWallet;
     }
 
     function setSellFees(
@@ -230,12 +194,6 @@ contract YieldLend is ERC20Burnable, Ownable {
         }
     }
 
-    function isExcludedFromMaxTransaction(
-        address account
-    ) public view returns (bool) {
-        return _isExcludedFromMaxTransaction[account];
-    }
-
     function isExcludedFromFees(address account) public view returns (bool) {
         return _isExcludedFromFees[account];
     }
@@ -269,36 +227,6 @@ contract YieldLend is ERC20Burnable, Ownable {
                 require(
                     _isExcludedFromFees[from] || _isExcludedFromFees[to],
                     "ERC20: Trading is not active."
-                );
-            }
-
-            // when buy
-            if (
-                _automatedMarketMakerPairs[from] &&
-                !_isExcludedFromMaxTransaction[to]
-            ) {
-                require(
-                    amount <= maxTransaction,
-                    "ERC20: Buy transfer amount exceeds the maxTransaction."
-                );
-                require(
-                    amount + balanceOf(to) <= maxWallet,
-                    "ERC20: Max wallet exceeded"
-                );
-            }
-            // when sell
-            else if (
-                _automatedMarketMakerPairs[to] &&
-                !_isExcludedFromMaxTransaction[from]
-            ) {
-                require(
-                    amount <= maxTransaction,
-                    "ERC20: Sell transfer amount exceeds the maxTransaction."
-                );
-            } else if (!_isExcludedFromMaxTransaction[to]) {
-                require(
-                    amount + balanceOf(to) <= maxWallet,
-                    "ERC20: Max wallet exceeded"
                 );
             }
         }
