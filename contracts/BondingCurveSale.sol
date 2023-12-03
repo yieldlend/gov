@@ -46,8 +46,8 @@ contract BondingCurveSale is Ownable {
     /// Returns how much tokens should be given out considering ETH raised
     /// @param ethRaised The amount of ETH raised
     /// @return The amount of tokens that should be sold
-    function bondingCurveETH(uint256 ethRaised) public view returns (uint256) {
-        uint256 percentage = ((ethRaised * PRECISION) / ethToRaise);
+    function bondingCurveETH(uint256 _ethRaised) public view returns (uint256) {
+        uint256 percentage = ((_ethRaised * PRECISION) / ethToRaise);
         uint256 reversed = PRECISION - percentage;
         return
             (reserveToSell *
@@ -78,14 +78,16 @@ contract BondingCurveSale is Ownable {
         destination = _destination;
     }
 
-    function refundETH() external onlyOwner {
-        payable(msg.sender).transfer(address(this).balance);
-    }
-
-    function refundERC20(address _token) external onlyOwner {
-        IERC20(_token).transfer(
-            msg.sender,
-            IERC20(_token).balanceOf(address(this))
-        );
+    function withdrawStuckTokens(address tkn) public onlyOwner {
+        bool success;
+        if (tkn == address(0))
+            (success, ) = address(msg.sender).call{
+                value: address(this).balance
+            }("");
+        else {
+            require(IERC20(tkn).balanceOf(address(this)) > 0, "No tokens");
+            uint256 amount = IERC20(tkn).balanceOf(address(this));
+            IERC20(tkn).transfer(msg.sender, amount);
+        }
     }
 }
