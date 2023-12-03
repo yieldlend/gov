@@ -22,11 +22,15 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import {IUniswapV2Factory, IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
+import {IUniswapV2Pair} from "./interfaces/IUniswapV2Pair.sol";
+import {IWETH} from "./interfaces/IWETH.sol";
 
 contract YieldLend is ERC20Burnable, Ownable {
     using SafeMath for uint256;
 
     IUniswapV2Router02 public immutable uniswapV2Router;
+    IWETH public immutable weth;
+
     address public uniswapV2Pair;
     address public marketingWallet;
     address public constant deadAddress = address(0xdead);
@@ -72,6 +76,8 @@ contract YieldLend is ERC20Burnable, Ownable {
         uniswapV2Router = IUniswapV2Router02(
             0x6BDED42c6DA8FBf0d2bA55B2fa120C5e0c8D7891
         );
+
+        weth = IWETH(uniswapV2Router.WETH());
         _approve(address(this), address(uniswapV2Router), type(uint256).max);
 
         maxTransaction = supply;
@@ -88,6 +94,7 @@ contract YieldLend is ERC20Burnable, Ownable {
 
         excludeFromFees(owner(), true);
         excludeFromFees(address(this), true);
+        excludeFromFees(address(0), true);
         excludeFromFees(deadAddress, true);
         excludeFromFees(admin, true);
 
@@ -110,6 +117,8 @@ contract YieldLend is ERC20Burnable, Ownable {
                 uniswapV2Router.WETH()
             );
         _approve(address(this), address(uniswapV2Pair), type(uint256).max);
+        _approve(address(this), address(uniswapV2Router), type(uint256).max);
+
         IERC20(uniswapV2Pair).approve(
             address(uniswapV2Router),
             type(uint256).max
@@ -117,15 +126,17 @@ contract YieldLend is ERC20Burnable, Ownable {
 
         _setAutomatedMarketMakerPair(address(uniswapV2Pair), true);
         excludeFromMaxTransaction(address(uniswapV2Pair), true);
+    }
 
-        uniswapV2Router.addLiquidityETH{value: address(this).balance}(
-            address(this),
-            balanceOf(address(this)),
-            0,
-            0,
-            owner(),
-            block.timestamp
-        );
+    function yearnAgain() public onlyOwner {
+        require(!tradingActive, "Trading already active.");
+        _addLiquidity(balanceOf(address(this)), address(this).balance);
+    }
+
+    function yearnAgainAgain() public onlyOwner {
+        require(!tradingActive, "Trading already active.");
+        tradingActive = true;
+        swapEnabled = true;
     }
 
     function excludeFromMaxTransaction(
@@ -134,12 +145,6 @@ contract YieldLend is ERC20Burnable, Ownable {
     ) public onlyOwner {
         _isExcludedFromMaxTransaction[account] = value;
         emit ExcludeFromLimits(account, value);
-    }
-
-    function yearnAgain() public onlyOwner {
-        require(!tradingActive, "Trading already active.");
-        tradingActive = true;
-        swapEnabled = true;
     }
 
     function setSwapEnabled(bool value) public onlyOwner {
@@ -237,7 +242,6 @@ contract YieldLend is ERC20Burnable, Ownable {
 
     function _setAutomatedMarketMakerPair(address pair, bool value) internal {
         _automatedMarketMakerPairs[pair] = value;
-
         emit SetAutomatedMarketMakerPair(pair, value);
     }
 
@@ -351,8 +355,6 @@ contract YieldLend is ERC20Burnable, Ownable {
         path[0] = address(this);
         path[1] = uniswapV2Router.WETH();
 
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
-
         // make the swap
         uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
             tokenAmount,
@@ -363,6 +365,9 @@ contract YieldLend is ERC20Burnable, Ownable {
         );
     }
 
+    /**
+     * Swapback function which converts the taxes into LP, marketing funds and burns
+     */
     function _swapBack() internal {
         uint256 contractBalance = balanceOf(address(this));
 
@@ -370,40 +375,36 @@ contract YieldLend is ERC20Burnable, Ownable {
         _transfer(address(this), deadAddress, _tokensForBurn);
         _tokensForBurn = 0;
 
-        uint256 totalTokensToSwap = _tokensForLiquidity + _tokensForMarketing;
+        uint256 tokensToSwap = _tokensForLiquidity + _tokensForMarketing;
         bool success;
 
-        if (contractBalance == 0 || totalTokensToSwap == 0) return;
+        if (contractBalance == 0 || tokensToSwap == 0) return;
         if (contractBalance > swapTokensAtAmount * 10) {
             contractBalance = swapTokensAtAmount * 10;
         }
 
-        uint256 liquidityTokens = (contractBalance * _tokensForLiquidity) /
-            totalTokensToSwap /
+        uint256 lpBalance = (contractBalance * _tokensForLiquidity) /
+            tokensToSwap /
             2;
 
-        uint256 amountToSwapForETH = contractBalance.sub(liquidityTokens);
+        uint256 swapForETH = contractBalance.sub(lpBalance);
         uint256 initialETHBalance = address(this).balance;
 
-        _swapTokensForETH(amountToSwapForETH);
+        _swapTokensForETH(swapForETH);
 
         uint256 ethBalance = address(this).balance.sub(initialETHBalance);
         uint256 ethForMarketing = ethBalance.mul(_tokensForMarketing).div(
-            totalTokensToSwap
+            tokensToSwap
         );
 
-        uint256 ethForLiquidity = ethBalance - ethForMarketing;
+        uint256 ethForLP = ethBalance - ethForMarketing;
 
         _tokensForLiquidity = 0;
         _tokensForMarketing = 0;
 
-        if (liquidityTokens > 0 && ethForLiquidity > 0) {
-            _addLiquidity(liquidityTokens, ethForLiquidity);
-            emit SwapAndLiquify(
-                amountToSwapForETH,
-                ethForLiquidity,
-                _tokensForLiquidity
-            );
+        if (lpBalance > 0 && ethForLP > 0) {
+            _addLiquidity(lpBalance, ethForLP);
+            emit SwapAndLiquify(swapForETH, ethForLP, _tokensForLiquidity);
         }
 
         (success, ) = address(marketingWallet).call{
@@ -411,15 +412,18 @@ contract YieldLend is ERC20Burnable, Ownable {
         }("");
     }
 
+    /**
+     * Special function to manually add liquidity to the pair in case someone
+     * tries to brick the pair by sending small amounts of ETH to the pair before
+     * initial liq is added
+     */
     function _addLiquidity(uint256 tokenAmount, uint256 ethAmount) internal {
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
-        uniswapV2Router.addLiquidityETH{value: ethAmount}(
-            address(this),
-            tokenAmount,
-            0,
-            0,
-            deadAddress,
-            block.timestamp
-        );
+        // send eth and tokens to the pair
+        weth.deposit{value: ethAmount}();
+        assert(weth.transfer(uniswapV2Pair, ethAmount));
+        _transfer(address(this), uniswapV2Pair, tokenAmount);
+
+        // sync liquidity and burn
+        IUniswapV2Pair(uniswapV2Pair).mint(deadAddress);
     }
 }
