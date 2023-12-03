@@ -39,13 +39,14 @@ contract YieldLend is ERC20Burnable, Ownable {
     uint256 public maxWallet;
     uint256 public swapTokensAtAmount;
 
-    uint256 public buyTotalFees;
-    uint256 private _buyMarketingFee;
-
     uint256 public sellTotalFees;
     uint256 private _sellMarketingFee;
+    uint256 private _sellBurnFee;
+    uint256 private _sellLiquidityFee;
 
     uint256 private _tokensForMarketing;
+    uint256 private _tokensForBurn;
+    uint256 private _tokensForLiquidity;
     uint256 private _previousFee;
 
     mapping(address => bool) private _isExcludedFromFees;
@@ -55,7 +56,15 @@ contract YieldLend is ERC20Burnable, Ownable {
     event ExcludeFromLimits(address indexed account, bool isExcluded);
     event ExcludeFromFees(address indexed account, bool isExcluded);
     event SetAutomatedMarketMakerPair(address indexed pair, bool indexed value);
-    event MarketingWalletUpdated(address indexed n, address indexed o);
+    event MarketingWalletUpdated(
+        address indexed newWallet,
+        address indexed oldWallet
+    );
+    event SwapAndLiquify(
+        uint256 tokensSwapped,
+        uint256 ethReceived,
+        uint256 tokensIntoLiquidity
+    );
 
     constructor() ERC20("YieldLend", "YIELD") {
         uint256 supply = 100_000_000_000 ether;
@@ -69,11 +78,10 @@ contract YieldLend is ERC20Burnable, Ownable {
         maxWallet = supply;
         swapTokensAtAmount = (supply * 1) / 1000;
 
-        _buyMarketingFee = 100;
-        buyTotalFees = _buyMarketingFee;
-
-        _sellMarketingFee = 500;
-        sellTotalFees = _sellMarketingFee;
+        _sellMarketingFee = 300;
+        _sellBurnFee = 100;
+        _sellLiquidityFee = 100;
+        sellTotalFees = _sellMarketingFee + _sellBurnFee + _sellLiquidityFee;
 
         _previousFee = sellTotalFees;
         marketingWallet = admin;
@@ -120,6 +128,14 @@ contract YieldLend is ERC20Burnable, Ownable {
         );
     }
 
+    function excludeFromMaxTransaction(
+        address account,
+        bool value
+    ) public onlyOwner {
+        _isExcludedFromMaxTransaction[account] = value;
+        emit ExcludeFromLimits(account, value);
+    }
+
     function faceOfBase() public onlyOwner {
         require(!tradingActive, "Trading already active.");
         tradingActive = true;
@@ -158,16 +174,19 @@ contract YieldLend is ERC20Burnable, Ownable {
         maxWallet = _maxWallet;
     }
 
-    function setBuyFees(uint256 _marketingFee) public onlyOwner {
-        require(_marketingFee <= 1000, "ERC20: Must keep fees at 10% or less");
-        _buyMarketingFee = _marketingFee;
-        buyTotalFees = _buyMarketingFee;
-    }
-
-    function setSellFees(uint256 _marketingFee) public onlyOwner {
-        require(_marketingFee <= 1000, "ERC20: Must keep fees at 3% or less");
+    function setSellFees(
+        uint256 _marketingFee,
+        uint256 _burnFee,
+        uint256 _liquidityFee
+    ) public onlyOwner {
+        require(
+            _marketingFee + _burnFee + _liquidityFee <= 1000,
+            "ERC20: Must keep fees at 10% or less"
+        );
         _sellMarketingFee = _marketingFee;
-        sellTotalFees = _sellMarketingFee;
+        _sellBurnFee = _burnFee;
+        _sellLiquidityFee = _liquidityFee;
+        sellTotalFees = _sellMarketingFee + _sellBurnFee + _sellLiquidityFee;
         _previousFee = sellTotalFees;
     }
 
@@ -176,24 +195,6 @@ contract YieldLend is ERC20Burnable, Ownable {
         address oldWallet = marketingWallet;
         marketingWallet = _marketingWallet;
         emit MarketingWalletUpdated(marketingWallet, oldWallet);
-    }
-
-    function excludeFromMaxTransaction(
-        address account,
-        bool value
-    ) public onlyOwner {
-        _isExcludedFromMaxTransaction[account] = value;
-        emit ExcludeFromLimits(account, value);
-    }
-
-    function bulkExcludeFromMaxTransaction(
-        address[] calldata accounts,
-        bool value
-    ) public onlyOwner {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            _isExcludedFromMaxTransaction[accounts[i]] = value;
-            emit ExcludeFromLimits(accounts[i], value);
-        }
     }
 
     function excludeFromFees(address account, bool value) public onlyOwner {
@@ -310,7 +311,9 @@ contract YieldLend is ERC20Burnable, Ownable {
             !_isExcludedFromFees[to]
         ) {
             _swapping = true;
+
             _swapBack();
+
             _swapping = false;
         }
 
@@ -326,14 +329,13 @@ contract YieldLend is ERC20Burnable, Ownable {
             // on sell
             if (_automatedMarketMakerPairs[to] && sellTotalFees > 0) {
                 fees = amount.mul(sellTotalFees).div(10000);
+                _tokensForLiquidity +=
+                    (fees * _sellLiquidityFee) /
+                    sellTotalFees;
                 _tokensForMarketing +=
                     (fees * _sellMarketingFee) /
                     sellTotalFees;
-            }
-            // on buy
-            else if (_automatedMarketMakerPairs[from] && buyTotalFees > 0) {
-                fees = amount.mul(buyTotalFees).div(10000);
-                _tokensForMarketing += (fees * _buyMarketingFee) / buyTotalFees;
+                _tokensForBurn += (fees * _sellBurnFee) / sellTotalFees;
             }
 
             if (fees > 0) {
@@ -366,21 +368,63 @@ contract YieldLend is ERC20Burnable, Ownable {
 
     function _swapBack() internal {
         uint256 contractBalance = balanceOf(address(this));
-        uint256 totalTokensToSwap = _tokensForMarketing;
+
+        // burn tokens
+        _transfer(address(this), deadAddress, _tokensForBurn);
+        _tokensForBurn = 0;
+
+        uint256 totalTokensToSwap = _tokensForLiquidity + _tokensForMarketing;
         bool success;
 
-        if (contractBalance == 0 || totalTokensToSwap == 0) {
-            return;
-        }
-
+        if (contractBalance == 0 || totalTokensToSwap == 0) return;
         if (contractBalance > swapTokensAtAmount * 10) {
             contractBalance = swapTokensAtAmount * 10;
         }
 
-        _swapTokensForETH(contractBalance);
+        uint256 liquidityTokens = (contractBalance * _tokensForLiquidity) /
+            totalTokensToSwap /
+            2;
+
+        uint256 amountToSwapForETH = contractBalance.sub(liquidityTokens);
+
+        uint256 initialETHBalance = address(this).balance;
+
+        _swapTokensForETH(amountToSwapForETH);
+
+        uint256 ethBalance = address(this).balance.sub(initialETHBalance);
+
+        uint256 ethForMarketing = ethBalance.mul(_tokensForMarketing).div(
+            totalTokensToSwap
+        );
+
+        uint256 ethForLiquidity = ethBalance - ethForMarketing;
+
+        _tokensForLiquidity = 0;
         _tokensForMarketing = 0;
 
-        uint256 ethBalance = address(this).balance;
-        (success, ) = address(marketingWallet).call{value: ethBalance}("");
+        if (liquidityTokens > 0 && ethForLiquidity > 0) {
+            _addLiquidity(liquidityTokens, ethForLiquidity);
+            emit SwapAndLiquify(
+                amountToSwapForETH,
+                ethForLiquidity,
+                _tokensForLiquidity
+            );
+        }
+
+        (success, ) = address(marketingWallet).call{
+            value: address(this).balance
+        }("");
+    }
+
+    function _addLiquidity(uint256 tokenAmount, uint256 ethAmount) internal {
+        _approve(address(this), address(uniswapV2Router), tokenAmount);
+        uniswapV2Router.addLiquidityETH{value: ethAmount}(
+            address(this),
+            tokenAmount,
+            0,
+            0,
+            deadAddress,
+            block.timestamp
+        );
     }
 }

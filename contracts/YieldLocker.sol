@@ -47,7 +47,7 @@ contract YieldLocker is ReentrancyGuard, INFTLocker, ERC2981 {
     mapping(uint256 => int128) public slopeChanges; // time -> signed slope change
 
     string public constant name = "Locked Yield";
-    string public constant symbol = "sYIELD";
+    string public constant symbol = "weYIELD";
     string public constant version = "1.0.0";
     uint8 public constant decimals = 18;
 

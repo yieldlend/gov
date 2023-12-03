@@ -26,7 +26,7 @@ contract VestedYieldLend is ERC20, ERC20Burnable, Ownable {
     bool public enableFromWhitelist;
     bool public enableToBlacklist;
 
-    constructor() ERC20("Vested Yield Lend", "vYERN") {
+    constructor() ERC20("Vested YieldLend", "vYIELD") {
         fromWhitelist[msg.sender] = true;
         fromWhitelist[address(this)] = true;
         fromWhitelist[address(0)] = true;
