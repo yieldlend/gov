@@ -78,9 +78,9 @@ contract YieldLend is ERC20Burnable, Ownable {
         maxWallet = supply;
         swapTokensAtAmount = (supply * 1) / 1000;
 
-        _sellMarketingFee = 300;
-        _sellBurnFee = 100;
-        _sellLiquidityFee = 100;
+        _sellMarketingFee = 300; // 3% marketing
+        _sellBurnFee = 100; // 1% burn
+        _sellLiquidityFee = 100; // 1% liquidity
         sellTotalFees = _sellMarketingFee + _sellBurnFee + _sellLiquidityFee;
 
         _previousFee = sellTotalFees;
@@ -136,7 +136,7 @@ contract YieldLend is ERC20Burnable, Ownable {
         emit ExcludeFromLimits(account, value);
     }
 
-    function faceOfBase() public onlyOwner {
+    function yearnAgain() public onlyOwner {
         require(!tradingActive, "Trading already active.");
         tradingActive = true;
         swapEnabled = true;
@@ -164,11 +164,11 @@ contract YieldLend is ERC20Burnable, Ownable {
     ) public onlyOwner {
         require(
             _maxTransaction >= ((totalSupply() * 5) / 1000),
-            "ERC20: Cannot set maxTxn lower than 0.5%"
+            "ERC20: Cannot set maxTxn higher than 0.5%"
         );
         require(
             _maxWallet >= ((totalSupply() * 5) / 1000),
-            "ERC20: Cannot set maxWallet lower than 0.5%"
+            "ERC20: Cannot set maxWallet higher than 0.5%"
         );
         maxTransaction = _maxTransaction;
         maxWallet = _maxWallet;
@@ -311,17 +311,14 @@ contract YieldLend is ERC20Burnable, Ownable {
             !_isExcludedFromFees[to]
         ) {
             _swapping = true;
-
             _swapBack();
-
             _swapping = false;
         }
 
         bool takeFee = !_swapping;
 
-        if (_isExcludedFromFees[from] || _isExcludedFromFees[to]) {
+        if (_isExcludedFromFees[from] || _isExcludedFromFees[to])
             takeFee = false;
-        }
 
         uint256 fees = 0;
 
@@ -386,13 +383,11 @@ contract YieldLend is ERC20Burnable, Ownable {
             2;
 
         uint256 amountToSwapForETH = contractBalance.sub(liquidityTokens);
-
         uint256 initialETHBalance = address(this).balance;
 
         _swapTokensForETH(amountToSwapForETH);
 
         uint256 ethBalance = address(this).balance.sub(initialETHBalance);
-
         uint256 ethForMarketing = ethBalance.mul(_tokensForMarketing).div(
             totalTokensToSwap
         );
