@@ -56,7 +56,7 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         lastId++;
 
         vests[lastId] = VestInfo({
-            who: address(this),
+            who: msg.sender,
             id: lastId,
             amount: amount,
             claimed: 0,

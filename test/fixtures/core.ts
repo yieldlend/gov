@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 
-const e18 = BigInt(10) ** 18n;
+export const e18 = BigInt(10) ** 18n;
 
 export async function deployFixture() {
   // Contracts are deployed using the first signer/account by default
@@ -16,7 +16,7 @@ export async function deployFixture() {
   const yieldLocker = await YieldLocker.deploy(token.target);
 
   const BondingCurve = await ethers.getContractFactory("EthBondingCurveSale");
-  const bondingCurveSale = await BondingCurve.deploy(token.target, 1);
+  const bondingCurveSale = await BondingCurve.deploy(vestedToken.target, 1);
 
   const StreamedVesting = await ethers.getContractFactory("StreamedVesting");
   const streamedVesting = await StreamedVesting.deploy();
@@ -41,8 +41,12 @@ export async function deployFixture() {
   // send 10% to liquidity
   await token.transfer(token.target, 10n * supply);
 
-  // send 20% to bonding curve
-  await token.transfer(bondingCurveSale.target, 20n * supply);
+  // send 20% vested tokens to bonding curve
+  await vestedToken.transfer(bondingCurveSale.target, 20n * supply);
+  await token.transfer(streamedVesting.target, 20n * supply);
+
+  // send 47% for emissions
+  await token.transfer(streamedVesting.target, 20n * supply);
 
   return {
     token,

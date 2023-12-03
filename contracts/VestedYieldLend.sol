@@ -21,33 +21,33 @@ import {ERC20Burnable, ERC20} from "@openzeppelin/contracts/token/ERC20/extensio
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract VestedYieldLend is ERC20, ERC20Burnable, Ownable {
-    mapping(address => bool) public fromWhitelist;
-    mapping(address => bool) public toBlacklist;
-    bool public enableFromWhitelist;
-    bool public enableToBlacklist;
+    mapping(address => bool) public whitelist;
+    mapping(address => bool) public blacklist;
+    bool public enableWhitelist;
+    bool public enableBlacklist;
 
     constructor() ERC20("Vested YieldLend", "vYIELD") {
-        fromWhitelist[msg.sender] = true;
-        fromWhitelist[address(this)] = true;
-        fromWhitelist[address(0)] = true;
+        whitelist[msg.sender] = true;
+        whitelist[address(this)] = true;
+        whitelist[address(0)] = true;
 
-        enableFromWhitelist = true;
-        enableToBlacklist = false;
+        enableWhitelist = true;
+        enableBlacklist = false;
 
         _mint(msg.sender, 100_000_000_000 ether);
     }
 
-    function addToBlacklist(address who, bool what) external onlyOwner {
-        toBlacklist[who] = what;
+    function addblacklist(address who, bool what) external onlyOwner {
+        blacklist[who] = what;
     }
 
-    function addFromWhitelist(address who, bool what) external onlyOwner {
-        fromWhitelist[who] = what;
+    function addwhitelist(address who, bool what) external onlyOwner {
+        whitelist[who] = what;
     }
 
     function toggleWhitelist(bool from, bool to) external onlyOwner {
-        enableFromWhitelist = from;
-        enableToBlacklist = to;
+        enableWhitelist = from;
+        enableBlacklist = to;
     }
 
     function _afterTokenTransfer(
@@ -55,12 +55,12 @@ contract VestedYieldLend is ERC20, ERC20Burnable, Ownable {
         address to,
         uint256
     ) internal virtual override {
-        if (enableFromWhitelist) {
-            require(fromWhitelist[from], "from address not in whitelist");
+        if (enableWhitelist) {
+            require(whitelist[from] || whitelist[to], "!whitelist");
         }
 
-        if (enableToBlacklist) {
-            require(!toBlacklist[to], "to address not in whitelist");
+        if (enableBlacklist) {
+            require(!blacklist[to] && !blacklist[from], "blacklist");
         }
     }
 }
