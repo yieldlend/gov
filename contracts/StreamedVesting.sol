@@ -33,6 +33,7 @@ contract StreamedVesting is IStreamedVesting, Initializable {
     IYieldLocker public locker;
     uint256 public lastId;
     IBonusPool public bonusPool;
+    address public dead = address(0xdead);
     uint256 public duration = 3 * 30 days; // 3 months vesting
 
     mapping(uint256 => VestInfo) public vests;
@@ -103,10 +104,10 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         require(val > 0, "no claimable amount");
 
         // update
-        vest.claimed = val;
+        vest.claimed += val;
         vests[id] = vest;
 
-        // reward
+        // send reward
         underlying.transfer(msg.sender, val);
     }
 
@@ -114,7 +115,19 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         VestInfo memory vest = vests[id];
         require(msg.sender == vest.who, "not owner");
 
-        // todo
+        uint256 pendingAmt = vest.amount - vest.claimed;
+        require(pendingAmt > 0, "no pending amount");
+
+        // update
+        vest.claimed += pendingAmt;
+        vests[id] = vest;
+
+        // send reward with penalties
+        uint256 penaltyPct = _penalty(vest);
+        uint256 penaltyAmt = ((pendingAmt * penaltyPct) / 1e18);
+        uint256 newVal = pendingAmt - penaltyAmt;
+        underlying.transfer(msg.sender, newVal);
+        underlying.transfer(dead, penaltyAmt);
     }
 
     function vestStatus(

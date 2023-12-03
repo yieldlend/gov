@@ -21,7 +21,7 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title  A bonding curve sale that is accepts ether for YIELD tokens.
-contract EthBondingCurveSale is Ownable {
+contract BondingCurveSale is Ownable {
     event Minted(uint256 amount, uint256 totalCost);
     event Burned(uint256 amount, uint256 reward);
 

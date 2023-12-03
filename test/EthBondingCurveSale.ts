@@ -5,18 +5,12 @@ import {
 import { expect } from "chai";
 import { e18, deployFixture as fixture } from "./fixtures/core";
 
-describe("StreamedVesting", function () {
+describe("EthBondingCurveSale", function () {
   it("Should deploy properly", async function () {
-    const { streamedVesting, token, vestedToken, owner } = await loadFixture(
-      fixture
-    );
-    expect(await streamedVesting.underlying()).to.equal(token.target);
-    expect(await streamedVesting.vestedToken()).to.equal(vestedToken.target);
-
-    expect(await vestedToken.balanceOf(streamedVesting.target)).eq(0);
-    expect(await token.balanceOf(streamedVesting.target)).greaterThan(0);
-    expect(await streamedVesting.lastId()).to.equal(0);
-    expect(await streamedVesting.userToIds(owner.address, 0)).to.equal(0);
+    const { bondingCurveSale, vestedToken, owner } = await loadFixture(fixture);
+    expect(await bondingCurveSale.token()).to.equal(vestedToken.target);
+    expect(await bondingCurveSale.destination()).to.equal(owner.address);
+    expect(await bondingCurveSale.destination()).to.equal(owner.address);
   });
 
   describe("For a user who has some vested tokens", function () {

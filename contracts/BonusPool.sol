@@ -34,7 +34,7 @@ contract BonusPool is Ownable, IBonusPool {
         _setBonusBps(amount);
     }
 
-    function calculateBonus(uint256 amount) external returns (uint256) {
+    function calculateBonus(uint256 amount) external view returns (uint256) {
         return (amount * bonusBps) / PCT_100;
     }
 
