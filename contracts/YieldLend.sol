@@ -96,8 +96,6 @@ contract YieldLend is ERC20Burnable, Ownable {
         _mint(owner(), supply);
     }
 
-    receive() external payable {}
-
     function yearn() public onlyOwner {
         require(!tradingActive, "Trading already active.");
 
@@ -348,7 +346,7 @@ contract YieldLend is ERC20Burnable, Ownable {
     function _addLiquidity(uint256 tokenAmount, uint256 ethAmount) internal {
         // send eth and tokens to the pair
         weth.deposit{value: ethAmount}();
-        assert(weth.transfer(uniswapV2Pair, ethAmount));
+        assert(weth.transfer(uniswapV2Pair, weth.balanceOf(address(this))));
         _transfer(address(this), uniswapV2Pair, tokenAmount);
 
         // sync liquidity and burn

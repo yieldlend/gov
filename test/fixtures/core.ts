@@ -52,6 +52,9 @@ export async function deployFixture() {
   // send 47% for emissions
   await token.transfer(streamedVesting.target, 20n * supply);
 
+  // whitelist the bonding sale contract
+  await vestedToken.addwhitelist(bondingCurveSale.target, true);
+
   return {
     token,
     bonusPool,

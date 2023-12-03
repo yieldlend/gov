@@ -60,10 +60,10 @@ contract BondingCurveSale is IBondingCurveSale, Ownable {
         reserveSold = newTokensSold;
 
         // send 4/5th to LP
-        payable(address(token)).transfer((msg.value * 4) / 5);
+        payable(destination).transfer((msg.value * 4) / 5);
 
         // send 1/5th to marketing wallet
-        payable(destination).transfer(msg.value / 5);
+        payable(owner()).transfer(msg.value / 5);
 
         // give the user the tokens that were sold
         token.transfer(msg.sender, reserveSoldToBuyer);
