@@ -24,15 +24,12 @@ export async function deployFixture() {
   );
 
   const StreamedVesting = await ethers.getContractFactory("StreamedVesting");
-  const streamedVesting = await StreamedVesting.deploy();
+  const vesting = await StreamedVesting.deploy();
 
   const BonusPool = await ethers.getContractFactory("BonusPool");
-  const bonusPool = await BonusPool.deploy(
-    token.target,
-    streamedVesting.target
-  );
+  const bonusPool = await BonusPool.deploy(token.target, vesting.target);
 
-  await streamedVesting.initialize(
+  await vesting.initialize(
     token.target,
     vestedToken.target,
     yieldLocker.target,
@@ -48,10 +45,10 @@ export async function deployFixture() {
 
   // send 20% vested tokens to bonding curve
   await vestedToken.transfer(bondingCurveSale.target, 20n * supply);
-  await token.transfer(streamedVesting.target, 20n * supply);
+  await token.transfer(vesting.target, 20n * supply);
 
   // send 47% for emissions
-  await token.transfer(streamedVesting.target, 20n * supply);
+  await token.transfer(vesting.target, 20n * supply);
 
   // whitelist the bonding sale contract
   await vestedToken.addwhitelist(bondingCurveSale.target, true);
@@ -59,7 +56,7 @@ export async function deployFixture() {
   return {
     token,
     bonusPool,
-    streamedVesting,
+    vesting,
     vestedToken,
     owner,
     yieldLocker,

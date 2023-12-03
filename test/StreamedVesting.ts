@@ -7,9 +7,12 @@ import { e18, deployFixture as fixture } from "./fixtures/core";
 
 describe("StreamedVesting", function () {
   it("Should deploy properly", async function () {
-    const { streamedVesting, token, vestedToken, owner } = await loadFixture(
-      fixture
-    );
+    const {
+      vesting: streamedVesting,
+      token,
+      vestedToken,
+      owner,
+    } = await loadFixture(fixture);
     expect(await streamedVesting.underlying()).to.equal(token.target);
     expect(await streamedVesting.vestedToken()).to.equal(vestedToken.target);
 
@@ -23,9 +26,12 @@ describe("StreamedVesting", function () {
     // todo
 
     it("Should create a new vest properly", async function () {
-      const { streamedVesting, token, vestedToken, owner } = await loadFixture(
-        fixture
-      );
+      const {
+        vesting: streamedVesting,
+        token,
+        vestedToken,
+        owner,
+      } = await loadFixture(fixture);
       expect(await vestedToken.balanceOf(owner.address)).greaterThan(0);
       await vestedToken.approve(streamedVesting.target, e18 * 100n);
 
@@ -38,9 +44,12 @@ describe("StreamedVesting", function () {
 
     it("Should vest 1/3rd after one month", async function () {
       const amt = e18 * 100n;
-      const { streamedVesting, token, vestedToken, owner } = await loadFixture(
-        fixture
-      );
+      const {
+        vesting: streamedVesting,
+        token,
+        vestedToken,
+        owner,
+      } = await loadFixture(fixture);
       expect(await vestedToken.balanceOf(owner.address)).greaterThan(0);
       await vestedToken.approve(streamedVesting.target, e18 * 100n);
 
