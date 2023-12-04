@@ -22,6 +22,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAggregatorV3Interface} from "./interfaces/IAggregatorV3Interface.sol";
 import {IBondingCurveSale} from "./interfaces/IBondingCurveSale.sol";
 
+import "hardhat/console.sol";
+
 /// @title  A bonding curve sale that is accepts ether for YIELD tokens.
 contract BondingCurveSale is
     IBondingCurveSale,
@@ -63,9 +65,10 @@ contract BondingCurveSale is
         int256 ethPrice = ethUsdPrice.latestAnswer();
 
         // totalSupply * ((ethInLp * ethPrice) / reserveInLP)
-        uint256 result = (token.totalSupply() * ethInLP * uint256(ethPrice)) /
+        uint256 result = (((token.totalSupply() * ethInLP)) *
+            uint256(ethPrice)) /
             reserveInLP /
-            1e8;
+            1e30;
 
         return int256(result);
     }

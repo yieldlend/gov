@@ -63,13 +63,13 @@ const check = (n: number) => {
   );
 };
 
-check(1);
+// check(1);
 check(10);
-check(25);
-check(50);
-check(100);
-check(250);
-check(500);
+// check(25);
+// check(50);
+// check(100);
+// check(250);
+// check(500);
 
 // console.log("bonding USD - 10%", bondingCurveETH(ethToRaise * 0.1));
 // console.log("sale 1 for 900k$", tokensReceivedETH(0, 0, 428));

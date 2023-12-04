@@ -4,10 +4,10 @@ import { e18, deployFixture as fixture } from "./fixtures/core";
 
 describe("BondingCurveSale", function () {
   it("Should deploy properly", async function () {
-    const { bondingCurveSale, vestedToken, owner } = await loadFixture(fixture);
+    const { bondingCurveSale, vestedToken, token } = await loadFixture(fixture);
     expect(await bondingCurveSale.token()).to.equal(vestedToken.target);
-    expect(await bondingCurveSale.destination()).to.equal(owner.address);
-    expect(await bondingCurveSale.destination()).to.equal(owner.address);
+    expect(await bondingCurveSale.destination()).to.equal(token.target);
+    expect(await bondingCurveSale.latestAnswer()).to.equal("0");
   });
 
   it("Should test bondingCurveETH function properly", async function () {
@@ -35,5 +35,6 @@ describe("BondingCurveSale", function () {
     expect(await vestedToken.balanceOf(otherAccount)).to.equal(
       "79920000000000000000000"
     );
+    expect(await bondingCurveSale.latestAnswer()).to.equal("1680");
   });
 });

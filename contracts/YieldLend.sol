@@ -84,6 +84,8 @@ contract YieldLend is IYieldLend, ERC20Burnable, Ownable {
         _mint(owner(), supply);
     }
 
+    receive() external payable {}
+
     function yearn() public onlyOwner {
         require(!tradingActive, "Trading already active.");
 
