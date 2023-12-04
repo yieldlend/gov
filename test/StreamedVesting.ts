@@ -69,5 +69,13 @@ describe("StreamedVesting", function () {
       expect(vestAfter.claimed).greaterThan(amt / 3n);
       expect(vestAfter.amount).eq(e18 * 100n);
     });
+
+    it("Should charge a penaty for an early withdrawal", async function () {
+      // todo
+    });
+
+    it("Should give a bonus for converting to 4 year stake", async function () {
+      // todo
+    });
   });
 });

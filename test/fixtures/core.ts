@@ -15,12 +15,17 @@ export async function deployFixture() {
   const YieldLocker = await ethers.getContractFactory("YieldLocker");
   const yieldLocker = await YieldLocker.deploy(token.target);
 
+  const MockOracle = await ethers.getContractFactory("MockOracle");
+  const mockOracle = await MockOracle.deploy(2100n * 10n ** 8n);
+
   const BondingCurve = await ethers.getContractFactory("BondingCurveSale");
   const bondingCurveSale = await BondingCurve.deploy(
-    token.target,
-    vestedToken.target,
-    e18 * 20000000n,
-    e18 * 500n
+    token.target, // address _destination,
+    mockOracle.target, // address _ethUsdPrice,
+    vestedToken.target, // IERC20 _token,
+    e18 * 10000000n, // uint256 _reserveInLP,
+    e18 * 500n, // uint256 _ethToRaise,
+    e18 * 20000000n // uint256 _reserveToSell
   );
 
   const StreamedVesting = await ethers.getContractFactory("StreamedVesting");

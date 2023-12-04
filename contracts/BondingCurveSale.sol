@@ -19,32 +19,55 @@ pragma solidity ^0.8.9;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IAggregatorV3Interface} from "./interfaces/IAggregatorV3Interface.sol";
 import {IBondingCurveSale} from "./interfaces/IBondingCurveSale.sol";
 
 /// @title  A bonding curve sale that is accepts ether for YIELD tokens.
-contract BondingCurveSale is IBondingCurveSale, Ownable {
+contract BondingCurveSale is
+    IBondingCurveSale,
+    Ownable,
+    IAggregatorV3Interface
+{
     uint256 private constant PRECISION = 1e18;
 
     address public destination;
-    IERC20 public token;
+    IAggregatorV3Interface public immutable ethUsdPrice;
+    IERC20 public immutable token;
+    uint256 public immutable ethToRaise;
+    uint256 public immutable reserveInLP;
+    uint256 public immutable reserveToSell;
 
-    uint256 public reserveToSell;
-    uint256 public ethToRaise;
-
+    // variables to track
     uint256 public ethRaised;
     uint256 public reserveSold;
 
     constructor(
         address _destination,
+        address _ethUsdPrice,
         IERC20 _token,
-        uint256 _reserveToSell,
-        uint256 _ethToRaise
+        uint256 _ethToRaise,
+        uint256 _reserveInLP,
+        uint256 _reserveToSell
     ) {
         destination = _destination;
-        token = _token;
-        reserveToSell = _reserveToSell;
-        reserveSold = 0;
         ethToRaise = _ethToRaise;
+        ethUsdPrice = IAggregatorV3Interface(_ethUsdPrice);
+        reserveInLP = _reserveInLP;
+        reserveSold = 0;
+        reserveToSell = _reserveToSell;
+        token = _token;
+    }
+
+    function latestAnswer() external view returns (int256) {
+        uint256 ethInLP = (ethRaised * 4) / 5;
+        int256 ethPrice = ethUsdPrice.latestAnswer();
+
+        // totalSupply * ((ethInLp * ethPrice) / reserveInLP)
+        uint256 result = (token.totalSupply() * ethInLP * uint256(ethPrice)) /
+            reserveInLP /
+            1e8;
+
+        return int256(result);
     }
 
     /// @inheritdoc IBondingCurveSale
