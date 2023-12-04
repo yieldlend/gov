@@ -37,4 +37,19 @@ describe("BondingCurveSale", function () {
     );
     expect(await bondingCurveSale.latestAnswer()).to.equal("1680");
   });
+
+  it("Should allow a user to get tokens if he invests 10 ETH properly", async function () {
+    const { bondingCurveSale, otherAccount, vestedToken } = await loadFixture(
+      fixture
+    );
+
+    expect(await vestedToken.balanceOf(otherAccount)).to.equal("0");
+
+    await bondingCurveSale.connect(otherAccount).mint({ value: e18 * 10n });
+
+    expect(await vestedToken.balanceOf(otherAccount)).to.equal(
+      "792000000000000000000000"
+    );
+    expect(await bondingCurveSale.latestAnswer()).to.equal("16800");
+  });
 });
