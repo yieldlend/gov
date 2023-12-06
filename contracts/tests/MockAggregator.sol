@@ -1,16 +1,36 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import {IAggregatorV3Interface} from "../interfaces/IAggregatorV3Interface.sol";
+//            /$$           /$$       /$$
+//           |__/          | $$      | $$
+//  /$$   /$$ /$$  /$$$$$$ | $$  /$$$$$$$
+// | $$  | $$| $$ /$$__  $$| $$ /$$__  $$
+// | $$  | $$| $$| $$$$$$$$| $$| $$  | $$
+// | $$  | $$| $$| $$_____/| $$| $$  | $$
+// |  $$$$$$$| $$|  $$$$$$$| $$|  $$$$$$$
+//  \____  $$|__/ \_______/|__/ \_______/
+//  /$$  | $$
+// |  $$$$$$/
+//  \______/
+//
+// Website: https://yieldlend.xyz
+// Discord: https://discord.com/invite/RvyTxAFtuf
+// Twitter: https://twitter.com/yieldlend
 
-contract MockAggregator is IAggregatorV3Interface {
-    int256 public price;
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-    constructor(int256 _price) {
-        price = _price;
+contract MockAggregator is Ownable {
+    int256 public latestAnswer;
+
+    constructor(int256 _answer) {
+        latestAnswer = _answer;
     }
 
-    function latestAnswer() external view returns (int256) {
-        return price;
+    function setAnswer(int256 _answer) external onlyOwner {
+        latestAnswer = _answer;
+    }
+
+    function decimals() external pure returns (uint8) {
+        return 8;
     }
 }

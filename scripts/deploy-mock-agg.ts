@@ -8,15 +8,17 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
   console.log("deployer", deployer.address);
 
-  // const factory = await hre.ethers.getContractFactory("VestedYieldLend");
-  // const contract = await factory.deploy();
+  const price = Math.floor(0.0000002 * 1e8);
 
-  // await contract.waitForDeployment();
+  const factory = await hre.ethers.getContractFactory("MockAggregator");
+  const contract = await factory.deploy(price);
+
+  await contract.waitForDeployment();
 
   // console.log(`deployed to ${greeterContract.address}`);
   await hre.run("verify:verify", {
-    address: "0x3F7A11bb98959966260347233BFE6559a1067dbf",
-    constructorArguments: [],
+    address: contract.target,
+    constructorArguments: [price],
   });
 }
 
