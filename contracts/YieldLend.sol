@@ -14,7 +14,7 @@ pragma solidity ^0.8.9;
 //  \______/
 //
 // Website: https://yieldlend.xyz
-// Telegram: https://t.me/yieldlend
+// Discord: https://discord.com/invite/RvyTxAFtuf
 // Twitter: https://twitter.com/yieldlend
 
 import {ERC20Burnable, IERC20, ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";

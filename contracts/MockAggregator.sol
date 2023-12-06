@@ -17,18 +17,17 @@ pragma solidity ^0.8.9;
 // Discord: https://discord.com/invite/RvyTxAFtuf
 // Twitter: https://twitter.com/yieldlend
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-interface IYieldLend is IERC20 {
-    event ExcludeFromFees(address indexed account, bool isExcluded);
-    event SetAutomatedMarketMakerPair(address indexed pair, bool indexed value);
-    event MarketingWalletUpdated(
-        address indexed newWallet,
-        address indexed oldWallet
-    );
-    event SwapAndLiquify(
-        uint256 tokensSwapped,
-        uint256 ethReceived,
-        uint256 tokensIntoLiquidity
-    );
+contract VestedYieldLend is Ownable {
+
+    int256 public latestAnswer;
+
+    constructor(int256 _answer) {
+        answer = _answer
+    }
+
+    function setAnswer(int256 _answer) external onlyOwner {
+        latestAnswer = _answer;
+    }
 }
