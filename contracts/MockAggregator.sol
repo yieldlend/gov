@@ -19,12 +19,11 @@ pragma solidity ^0.8.9;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract VestedYieldLend is Ownable {
-
+contract MockAggregator is Ownable {
     int256 public latestAnswer;
 
     constructor(int256 _answer) {
-        answer = _answer
+        latestAnswer = _answer;
     }
 
     function setAnswer(int256 _answer) external onlyOwner {
