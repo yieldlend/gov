@@ -46,7 +46,6 @@ describe("StreamedVesting", function () {
       const amt = e18 * 100n;
       const {
         vesting: streamedVesting,
-        token,
         vestedToken,
         owner,
       } = await loadFixture(fixture);
@@ -70,8 +69,77 @@ describe("StreamedVesting", function () {
       expect(vestAfter.amount).eq(e18 * 100n);
     });
 
-    it("Should charge a penaty for an early withdrawal", async function () {
-      // todo
+    it("Should calculate penalty properly", async function () {
+      const { vesting } = await loadFixture(fixture);
+      const duration = await vesting.duration();
+      const start = 170190677n;
+      const fn = (a: bigint) =>
+        vesting["penalty(uint256,uint256)"](
+          start,
+          start + (duration * a) / 10n
+        );
+
+      expect(await fn(-1n)).eq(950000000000000000n);
+      expect(await fn(0n)).eq(950000000000000000n);
+      expect(await fn(2n)).eq(800000000000000000n);
+      expect(await fn(5n)).eq(575000000000000000n);
+      expect(await fn(9n)).eq(275000000000000000n);
+      expect(await fn(11n)).eq(200000000000000000n);
+    });
+
+    it("Should estimate penalty properly for an early withdrawal", async function () {
+      const { vesting, vestedToken, owner } = await loadFixture(fixture);
+      expect(await vestedToken.balanceOf(owner.address)).greaterThan(0);
+      await vestedToken.approve(vesting.target, e18 * 100n);
+
+      await vesting.createVest(e18 * 100n); // start vesting 100 tokens.
+      expect(await vesting.claimable(1)).to.equal(0);
+
+      // penalty for now should be 95%
+      const p = await vesting.claimablePenalty(1);
+      expect(p).to.equal(e18 * 5n); // 5% of 100n
+
+      await time.increase(86400 * 30);
+
+      // penalty for now should be 70%
+      const p2 = await vesting.claimablePenalty(1);
+      expect(p2).to.equal(e18 * 30n); // 30% of 100n
+
+      await time.increase(86400 * 90);
+
+      // penalty for now should be 0%
+      const p3 = await vesting.claimablePenalty(1);
+      expect(p3).to.equal(e18 * 100n); // 30% of 100n
+    });
+
+    it.only("Should charge a penalty for an early withdrawal", async function () {
+      const { vesting, vestedToken, token, otherAccount } = await loadFixture(
+        fixture
+      );
+      await vestedToken.transfer(otherAccount.address, e18 * 100n);
+
+      expect(await vestedToken.balanceOf(otherAccount.address)).eq(e18 * 100n);
+      await vestedToken
+        .connect(otherAccount)
+        .approve(vesting.target, e18 * 100n);
+
+      await vesting.connect(otherAccount).createVest(e18 * 100n); // start vesting 100 tokens.
+      expect(await vesting.claimable(1)).to.equal(0);
+
+      // penalty for now should be 95%
+      const p = await vesting.claimablePenalty(1);
+      expect(p).to.equal(e18 * 5n); // 5% of 100n
+
+      expect(await token.balanceOf(otherAccount.address)).eq(0);
+      await vesting.connect(otherAccount).claimVestEarlyWithPenalty("1");
+      expect(await token.balanceOf(otherAccount.address)).greaterThan(e18 * 5n);
+
+      const vest = await vesting.vests(1);
+      expect(await vest.claimed).eq(vest.amount);
+
+      expect(vesting.connect(otherAccount).claimVest("1")).revertedWith(
+        "no claimable amount"
+      );
     });
 
     it("Should give a bonus for converting to 4 year stake", async function () {

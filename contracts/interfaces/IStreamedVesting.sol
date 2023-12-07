@@ -10,7 +10,19 @@ interface IStreamedVesting {
         uint256 startAt;
     }
 
-    event TokensReleased(address token, uint256 amount);
+    event PenaltyCharged(
+        address indexed who,
+        uint256 vestId,
+        uint256 amt,
+        uint256 ptc
+    );
+    event TokensReleased(address indexed who, uint256 vestId, uint256 amount);
+    event VestingCreated(
+        address indexed who,
+        uint256 vestId,
+        uint256 amount,
+        uint256 timestamp
+    );
 
     function createVest(uint256 amount) external;
 

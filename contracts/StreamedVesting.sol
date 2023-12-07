@@ -65,7 +65,7 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         userToIds[msg.sender][userVestCount] = lastId;
         userVestCounts[msg.sender] = userVestCount + 1;
 
-        // emit
+        emit VestingCreated(msg.sender, lastId, amount, block.timestamp);
     }
 
     function stakeTo4Year(uint256 id) external {
@@ -106,6 +106,7 @@ contract StreamedVesting is IStreamedVesting, Initializable {
 
         // send reward
         underlying.transfer(msg.sender, val);
+        emit TokensReleased(msg.sender, id, val);
     }
 
     function claimVestEarlyWithPenalty(uint256 id) external {
@@ -120,11 +121,13 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         vests[id] = vest;
 
         // send reward with penalties
-        uint256 penaltyPct = _penalty(vest);
+        uint256 penaltyPct = penalty(vest);
         uint256 penaltyAmt = ((pendingAmt * penaltyPct) / 1e18);
-        uint256 newVal = pendingAmt - penaltyAmt;
-        underlying.transfer(msg.sender, newVal);
+        underlying.transfer(msg.sender, pendingAmt - penaltyAmt);
         underlying.transfer(dead, penaltyAmt);
+
+        emit TokensReleased(msg.sender, id, penaltyAmt);
+        emit PenaltyCharged(msg.sender, id, penaltyAmt, penaltyPct);
     }
 
     function vestStatus(
@@ -149,11 +152,12 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         _claimed = vest.claimed;
 
         _claimableAmt = _claimable(vest);
-        _penaltyAmt = _penalty(vest);
+        _penaltyAmt = penalty(vest);
 
+        uint256 pendingAmt = vest.amount - vest.claimed;
         _claimableWithPenalty =
-            _claimableAmt -
-            ((_claimableAmt * _penaltyAmt) / 1e18);
+            pendingAmt -
+            ((pendingAmt * _penaltyAmt) / 1e18);
     }
 
     function claimable(uint256 id) external view returns (uint256) {
@@ -164,15 +168,14 @@ contract StreamedVesting is IStreamedVesting, Initializable {
     function claimablePenalty(uint256 id) external view returns (uint256) {
         VestInfo memory vest = vests[id];
 
-        uint256 val = _claimable(vest.amount, vest.startAt, block.timestamp) -
-            vest.claimed;
+        uint256 pendingAmt = vest.amount - vest.claimed;
 
-        uint256 penalty = _penalty(vest);
-
-        return val - ((val * penalty) / 1e18);
+        uint256 _penalty = penalty(vest);
+        return pendingAmt - ((pendingAmt * _penalty) / 1e18);
     }
 
     function _claimable(VestInfo memory vest) internal view returns (uint256) {
+        if (vest.claimed >= vest.amount) return 0;
         return
             _claimable(vest.amount, vest.startAt, block.timestamp) -
             vest.claimed;
@@ -193,34 +196,34 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         return (amount * (nowTime - startTime)) / duration;
     }
 
-    function _penalty(VestInfo memory vest) internal view returns (uint256) {
-        return _penalty(vest.startAt, block.timestamp);
+    function penalty(VestInfo memory vest) public view returns (uint256) {
+        return penalty(vest.startAt, block.timestamp);
     }
 
-    function _penalty(
+    function penalty(
         uint256 startTime,
         uint256 nowTime
-    ) internal view returns (uint256) {
-        // After vesting is over, then penalty is 20%
-        if (nowTime > startTime + duration) return 20e18 / 100;
+    ) public view returns (uint256) {
+        // After vesting is over, then penalty is 0%
+        if (nowTime > startTime + duration) return 0;
 
         // Before vesting the penalty is 95%
         if (nowTime < startTime) return 95e18 / 100;
 
-        // TODO return a percentage
-        // uint256 percentage =
-        // return (amount * (nowTime - startTime)) / duration;
-        return 50e18 / 100;
+        uint256 percentage = ((nowTime - startTime) * 1e18) / duration;
+
+        uint256 penaltyE20 = 95e18 - (75e18 * percentage) / 1e18;
+        return penaltyE20 / 100;
     }
 
-    function vestIds(address who) external view returns (uint256[] memory ids) {
-        // uint256[] memory ids = uint256[](userVestCounts[who]);
+    function vestIds(address who) external view returns (uint256[] memory) {
+        uint256[] memory ids = new uint256[](userVestCounts[who]);
 
         for (uint i = 0; i < userVestCounts[who]; i++) {
-            // uint256 id = userToIds[who][i];
-            // ids.push(id);
+            uint256 id = userToIds[who][i];
+            ids[i] = id;
         }
 
-        // return [];
+        return ids;
     }
 }

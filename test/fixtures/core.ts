@@ -7,7 +7,7 @@ export async function deployFixture() {
   const [owner, otherAccount] = await ethers.getSigners();
 
   const YieldLend = await ethers.getContractFactory("YieldLend");
-  const token = await YieldLend.deploy();
+  const token = await YieldLend.connect(owner).deploy();
 
   const VestedYieldLend = await ethers.getContractFactory("VestedYieldLend");
   const vestedToken = await VestedYieldLend.deploy();
@@ -57,6 +57,7 @@ export async function deployFixture() {
 
   // whitelist the bonding sale contract
   await vestedToken.addwhitelist(bondingCurveSale.target, true);
+  await token.excludeFromFees(vesting.target, true);
 
   return {
     token,
