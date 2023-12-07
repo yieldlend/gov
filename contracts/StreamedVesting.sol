@@ -47,6 +47,8 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         vestedToken = _vestedToken;
         locker = _locker;
         bonusPool = _bonusPool;
+
+        underlying.approve(address(_locker), type(uint256).max);
     }
 
     function createVest(uint256 amount) external {
@@ -174,6 +176,26 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         return pendingAmt - ((pendingAmt * _penalty) / 1e18);
     }
 
+    function penalty(VestInfo memory vest) public view returns (uint256) {
+        return penalty(vest.startAt, block.timestamp);
+    }
+
+    function penalty(
+        uint256 startTime,
+        uint256 nowTime
+    ) public view returns (uint256) {
+        // After vesting is over, then penalty is 0%
+        if (nowTime > startTime + duration) return 0;
+
+        // Before vesting the penalty is 95%
+        if (nowTime < startTime) return 95e18 / 100;
+
+        uint256 percentage = ((nowTime - startTime) * 1e18) / duration;
+
+        uint256 penaltyE20 = 95e18 - (75e18 * percentage) / 1e18;
+        return penaltyE20 / 100;
+    }
+
     function _claimable(VestInfo memory vest) internal view returns (uint256) {
         if (vest.claimed >= vest.amount) return 0;
         return
@@ -194,26 +216,6 @@ contract StreamedVesting is IStreamedVesting, Initializable {
 
         // else return a percentage
         return (amount * (nowTime - startTime)) / duration;
-    }
-
-    function penalty(VestInfo memory vest) public view returns (uint256) {
-        return penalty(vest.startAt, block.timestamp);
-    }
-
-    function penalty(
-        uint256 startTime,
-        uint256 nowTime
-    ) public view returns (uint256) {
-        // After vesting is over, then penalty is 0%
-        if (nowTime > startTime + duration) return 0;
-
-        // Before vesting the penalty is 95%
-        if (nowTime < startTime) return 95e18 / 100;
-
-        uint256 percentage = ((nowTime - startTime) * 1e18) / duration;
-
-        uint256 penaltyE20 = 95e18 - (75e18 * percentage) / 1e18;
-        return penaltyE20 / 100;
     }
 
     function vestIds(address who) external view returns (uint256[] memory) {

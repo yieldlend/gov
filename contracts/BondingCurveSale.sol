@@ -61,7 +61,7 @@ contract BondingCurveSale is
     }
 
     function latestAnswer() external view returns (int256) {
-        uint256 ethInLP = (ethRaised * 4) / 5;
+        uint256 ethInLP = (ethRaised * 3) / 5;
         int256 ethPrice = ethUsdPrice.latestAnswer();
 
         // totalSupply * ((ethInLp * ethPrice) / reserveInLP)
@@ -90,11 +90,11 @@ contract BondingCurveSale is
         uint256 reserveSoldToBuyer = newTokensSold - reserveSold;
         reserveSold = newTokensSold;
 
-        // send 4/5th to LP
-        payable(destination).transfer((msg.value * 4) / 5);
+        // send 3/5th to LP
+        payable(destination).transfer((msg.value * 3) / 5);
 
-        // send 1/5th to marketing wallet
-        payable(owner()).transfer(msg.value / 5);
+        // send 2/5th to marketing wallet
+        payable(owner()).transfer((msg.value * 2) / 5);
 
         // give the user the tokens that were sold
         token.transfer(msg.sender, reserveSoldToBuyer);

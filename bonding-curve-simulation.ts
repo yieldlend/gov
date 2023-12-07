@@ -2,7 +2,7 @@ const totalSupply = 100000000;
 const ethPrice = 2100;
 
 const usdToRaise = 1000000;
-const ethToRaise = 500;
+const ethToRaise = 1000;
 const reserveToSell = totalSupply * 0.2;
 const reserveInLP = totalSupply * 0.1;
 

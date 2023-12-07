@@ -13,7 +13,7 @@ export async function deployFixture() {
   const vestedToken = await VestedYieldLend.deploy();
 
   const YieldLocker = await ethers.getContractFactory("YieldLocker");
-  const yieldLocker = await YieldLocker.deploy(token.target);
+  const locker = await YieldLocker.deploy(token.target);
 
   const MockAggregator = await ethers.getContractFactory("MockAggregator");
   const mockOracle = await MockAggregator.deploy(2100n * 10n ** 8n);
@@ -23,7 +23,7 @@ export async function deployFixture() {
     token.target, // address _destination,
     mockOracle.target, // address _ethUsdPrice,
     vestedToken.target, // IERC20 _token,
-    e18 * 500n, // uint256 _ethToRaise,
+    e18 * 1500n, // uint256 _ethToRaise,
     e18 * 10000000n, // uint256 _reserveInLP,
     e18 * 20000000n // uint256 _reserveToSell
   );
@@ -37,7 +37,7 @@ export async function deployFixture() {
   await vesting.initialize(
     token.target,
     vestedToken.target,
-    yieldLocker.target,
+    locker.target,
     bonusPool.target
   );
 
@@ -57,7 +57,10 @@ export async function deployFixture() {
 
   // whitelist the bonding sale contract
   await vestedToken.addwhitelist(bondingCurveSale.target, true);
-  await token.excludeFromFees(vesting.target, true);
+  await token.bulkExcludeFromFees(
+    [vesting.target, locker.target, bonusPool.target],
+    true
+  );
 
   return {
     token,
@@ -65,7 +68,7 @@ export async function deployFixture() {
     vesting,
     vestedToken,
     owner,
-    yieldLocker,
+    locker,
     otherAccount,
     bondingCurveSale,
   };

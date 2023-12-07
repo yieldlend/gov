@@ -52,7 +52,7 @@ contract YieldLocker is ReentrancyGuard, IYieldLocker, ERC2981 {
     uint8 public constant decimals = 18;
 
     /// @dev Current count of token
-    uint256 internal tokenId;
+    uint256 public tokenId;
 
     /// @dev Mapping from NFT ID to the address that owns it.
     mapping(uint256 => address) internal idToOwner;

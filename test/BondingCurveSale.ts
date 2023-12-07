@@ -13,12 +13,12 @@ describe("BondingCurveSale", function () {
   it("Should test bondingCurveETH function properly", async function () {
     const { bondingCurveSale } = await loadFixture(fixture);
     expect(await bondingCurveSale.bondingCurveETH(e18)).to.equal(
-      "79920000000000000000000"
+      "26657777777777760000000"
     );
     expect(await bondingCurveSale.bondingCurveETH(e18 * 100n)).to.equal(
-      "7200000000000000000000000"
+      "2577777777777777760000000"
     );
-    expect(await bondingCurveSale.bondingCurveETH(e18 * 500n)).to.equal(
+    expect(await bondingCurveSale.bondingCurveETH(e18 * 1500n)).to.equal(
       "20000000000000000000000000"
     );
   });
@@ -33,9 +33,9 @@ describe("BondingCurveSale", function () {
     await bondingCurveSale.connect(otherAccount).mint({ value: e18 });
 
     expect(await vestedToken.balanceOf(otherAccount)).to.equal(
-      "79920000000000000000000"
+      "26657777777777760000000"
     );
-    expect(await bondingCurveSale.latestAnswer()).to.equal("1680");
+    expect(await bondingCurveSale.latestAnswer()).to.equal("1260");
   });
 
   it("Should allow a user to get tokens if he invests 10 ETH properly", async function () {
@@ -48,8 +48,8 @@ describe("BondingCurveSale", function () {
     await bondingCurveSale.connect(otherAccount).mint({ value: e18 * 10n });
 
     expect(await vestedToken.balanceOf(otherAccount)).to.equal(
-      "792000000000000000000000"
+      "265777777777777760000000"
     );
-    expect(await bondingCurveSale.latestAnswer()).to.equal("16800");
+    expect(await bondingCurveSale.latestAnswer()).to.equal("12600");
   });
 });

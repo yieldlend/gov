@@ -84,7 +84,7 @@ describe("StreamedVesting", function () {
       expect(await fn(2n)).eq(800000000000000000n);
       expect(await fn(5n)).eq(575000000000000000n);
       expect(await fn(9n)).eq(275000000000000000n);
-      expect(await fn(11n)).eq(200000000000000000n);
+      expect(await fn(11n)).eq(0n);
     });
 
     it("Should estimate penalty properly for an early withdrawal", async function () {
@@ -112,7 +112,7 @@ describe("StreamedVesting", function () {
       expect(p3).to.equal(e18 * 100n); // 30% of 100n
     });
 
-    it.only("Should charge a penalty for an early withdrawal", async function () {
+    it("Should charge a penalty for an early withdrawal", async function () {
       const { vesting, vestedToken, token, otherAccount } = await loadFixture(
         fixture
       );
@@ -143,7 +143,67 @@ describe("StreamedVesting", function () {
     });
 
     it("Should give a bonus for converting to 4 year stake", async function () {
-      // todo
+      const { vesting, vestedToken, token, locker, otherAccount } =
+        await loadFixture(fixture);
+      await vestedToken.transfer(otherAccount.address, e18 * 100n);
+
+      expect(await vestedToken.balanceOf(otherAccount.address)).eq(e18 * 100n);
+      await vestedToken
+        .connect(otherAccount)
+        .approve(vesting.target, e18 * 100n);
+
+      await vesting.connect(otherAccount).createVest(e18 * 100n); // start vesting 100 tokens.
+      expect(await vesting.claimable(1)).to.equal(0);
+
+      // penalty for now should be 95%
+      const p = await vesting.claimablePenalty(1);
+      expect(p).to.equal(e18 * 5n); // 5% of 100n
+
+      await vesting.connect(otherAccount).stakeTo4Year("1");
+      expect(await token.balanceOf(otherAccount.address)).eq(0);
+      expect(await locker.balanceOf(otherAccount.address)).eq(1);
+      expect(await locker.balanceOfNFT(1)).greaterThan(e18 * 119n); // 120 weYEILD
+      expect(await locker.balanceOfNFT(1)).lessThan(e18 * 120n); // 120 weYEILD
+
+      const vest = await vesting.vests(1);
+      expect(await vest.claimed).eq(vest.amount);
+
+      expect(vesting.connect(otherAccount).claimVest("1")).revertedWith(
+        "no claimable amount"
+      );
+    });
+
+    it("Should skip a bonus if the bonus pool is empty", async function () {
+      const { vesting, vestedToken, bonusPool, token, locker, otherAccount } =
+        await loadFixture(fixture);
+
+      await bonusPool.withdrawStuckTokens(token.target);
+      await vestedToken.transfer(otherAccount.address, e18 * 100n);
+
+      expect(await vestedToken.balanceOf(otherAccount.address)).eq(e18 * 100n);
+      await vestedToken
+        .connect(otherAccount)
+        .approve(vesting.target, e18 * 100n);
+
+      await vesting.connect(otherAccount).createVest(e18 * 100n); // start vesting 100 tokens.
+      expect(await vesting.claimable(1)).to.equal(0);
+
+      // penalty for now should be 95%
+      const p = await vesting.claimablePenalty(1);
+      expect(p).to.equal(e18 * 5n); // 5% of 100n
+
+      await vesting.connect(otherAccount).stakeTo4Year("1");
+      expect(await token.balanceOf(otherAccount.address)).eq(0);
+      expect(await locker.balanceOf(otherAccount.address)).eq(1);
+      expect(await locker.balanceOfNFT(1)).greaterThan(e18 * 99n); // 100 weYEILD
+      expect(await locker.balanceOfNFT(1)).lessThan(e18 * 100n); // 100 weYEILD
+
+      const vest = await vesting.vests(1);
+      expect(await vest.claimed).eq(vest.amount);
+
+      expect(vesting.connect(otherAccount).claimVest("1")).revertedWith(
+        "no claimable amount"
+      );
     });
   });
 });
