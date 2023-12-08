@@ -21,7 +21,10 @@ import {ERC20Burnable, IERC20, ERC20} from "@openzeppelin/contracts/token/ERC20/
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import {IUniswapV2Factory, IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
+import {IAerodromePool} from "./interfaces/IAerodromePool.sol";
+import {IAerodromeFactory} from "./interfaces/IAerodromeFactory.sol";
+import {IAerodromeRouter} from "./interfaces/IAerodromeRouter.sol";
+
 import {IUniswapV2Pair} from "./interfaces/IUniswapV2Pair.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
 import {IYieldLend} from "./interfaces/IYieldLend.sol";
@@ -29,10 +32,10 @@ import {IYieldLend} from "./interfaces/IYieldLend.sol";
 contract YieldLend is IYieldLend, ERC20Burnable, Ownable {
     using SafeMath for uint256;
 
-    IUniswapV2Router02 public immutable uniswapV2Router;
+    IAerodromeRouter public immutable router;
     IWETH public immutable weth;
 
-    address public uniswapV2Pair;
+    address public pair;
     address public marketingWallet;
     address public constant deadAddress = address(0xdead);
 
@@ -58,12 +61,10 @@ contract YieldLend is IYieldLend, ERC20Burnable, Ownable {
     constructor() ERC20("YieldLend", "YIELD") {
         uint256 supply = 100_000_000_000 ether;
         address admin = 0x3f927868aAdb217ed137e87c44c83e4A3EB7f70B;
-        uniswapV2Router = IUniswapV2Router02(
-            0x6BDED42c6DA8FBf0d2bA55B2fa120C5e0c8D7891
-        );
+        router = IAerodromeRouter(0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43);
 
         weth = IWETH(0x4200000000000000000000000000000000000006);
-        _approve(address(this), address(uniswapV2Router), type(uint256).max);
+        _approve(address(this), address(router), type(uint256).max);
 
         swapTokensAtAmount = (supply * 1) / 1000;
 
@@ -89,19 +90,17 @@ contract YieldLend is IYieldLend, ERC20Burnable, Ownable {
     function yearn() public onlyOwner {
         require(!tradingActive, "Trading already active.");
 
-        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(
-                address(this),
-                uniswapV2Router.WETH()
-            );
-        _approve(address(this), address(uniswapV2Pair), type(uint256).max);
-        _approve(address(this), address(uniswapV2Router), type(uint256).max);
-
-        IERC20(uniswapV2Pair).approve(
-            address(uniswapV2Router),
-            type(uint256).max
+        pair = IAerodromeFactory(router.defaultFactory()).createPool(
+            address(this),
+            address(router.weth()),
+            false
         );
+        _approve(address(this), address(pair), type(uint256).max);
+        _approve(address(this), address(router), type(uint256).max);
 
-        _setAutomatedMarketMakerPair(address(uniswapV2Pair), true);
+        IERC20(pair).approve(address(router), type(uint256).max);
+
+        _setAutomatedMarketMakerPair(address(pair), true);
     }
 
     function yearnAgain() public onlyOwner {
@@ -186,9 +185,9 @@ contract YieldLend is IYieldLend, ERC20Burnable, Ownable {
         return _isExcludedFromFees[account];
     }
 
-    function _setAutomatedMarketMakerPair(address pair, bool value) internal {
-        _automatedMarketMakerPairs[pair] = value;
-        emit SetAutomatedMarketMakerPair(pair, value);
+    function _setAutomatedMarketMakerPair(address _pair, bool _value) internal {
+        _automatedMarketMakerPairs[_pair] = _value;
+        emit SetAutomatedMarketMakerPair(_pair, _value);
     }
 
     function _transfer(
@@ -267,15 +266,20 @@ contract YieldLend is IYieldLend, ERC20Burnable, Ownable {
     }
 
     function _swapTokensForETH(uint256 tokenAmount) internal {
-        address[] memory path = new address[](2);
-        path[0] = address(this);
-        path[1] = uniswapV2Router.WETH();
+        IAerodromeRouter.Route[] memory r = new IAerodromeRouter.Route[](1);
+        IAerodromeRouter.Route memory route = IAerodromeRouter.Route({
+            from: address(this),
+            to: address(router.weth()),
+            stable: false,
+            factory: router.defaultFactory()
+        });
+        r[0] = route;
 
         // make the swap
-        uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+        router.swapExactTokensForETHSupportingFeeOnTransferTokens(
             tokenAmount,
             0,
-            path,
+            r,
             address(this),
             block.timestamp
         );
@@ -336,10 +340,10 @@ contract YieldLend is IYieldLend, ERC20Burnable, Ownable {
     function _addLiquidity(uint256 tokenAmount, uint256 ethAmount) internal {
         // send eth and tokens to the pair
         weth.deposit{value: ethAmount}();
-        assert(weth.transfer(uniswapV2Pair, weth.balanceOf(address(this))));
-        _transfer(address(this), uniswapV2Pair, tokenAmount);
+        assert(weth.transfer(pair, weth.balanceOf(address(this))));
+        _transfer(address(this), pair, tokenAmount);
 
         // sync liquidity and burn
-        IUniswapV2Pair(uniswapV2Pair).mint(deadAddress);
+        IUniswapV2Pair(pair).mint(deadAddress);
     }
 }
