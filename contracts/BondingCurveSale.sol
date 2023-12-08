@@ -51,6 +51,8 @@ contract BondingCurveSale is
 
     mapping(uint256 => uint256) public referralEarnings;
 
+    mapping(address => uint256) public ethContributed;
+
     /// @inheritdoc IBondingCurveSale
     uint256 public ethRaised;
 
@@ -146,6 +148,9 @@ contract BondingCurveSale is
         uint256 newTokensSold = bondingCurveETH(ethRaised);
         uint256 reserveSoldToBuyer = newTokensSold - reserveSold;
         reserveSold = newTokensSold;
+
+        // track eth contributed for discord roles
+        ethContributed[who] += msg.value;
 
         // send 3/5th to LP
         payable(destination).transfer((msg.value * 3) / 5);
