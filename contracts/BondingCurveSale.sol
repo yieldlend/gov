@@ -23,8 +23,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAggregatorV3Interface} from "./interfaces/IAggregatorV3Interface.sol";
 import {IBondingCurveSale} from "./interfaces/IBondingCurveSale.sol";
 
-import "hardhat/console.sol";
-
 /// @title  A bonding curve sale that is accepts ether for YIELD tokens.
 contract BondingCurveSale is
     IBondingCurveSale,
@@ -171,6 +169,6 @@ contract BondingCurveSale is
     function _referralCode(address who) internal pure returns (uint256) {
         // calculate tokens sold baesd on the ETH raised
         uint256 code = uint256(uint160(who));
-        return (code) & 0xffffffff;
+        return (code) & 0xffffffffffff;
     }
 }

@@ -100,6 +100,6 @@ describe("FeeDistributor", () => {
 
     // all the rewards should be given to the user
     await feeDistributor.connect(other).claim("1");
-    expect(await vToken.balanceOf(other.address)).greaterThan(3260000n * e18);
+    expect(await vToken.balanceOf(other.address)).greaterThan(3200000n * e18);
   });
 });

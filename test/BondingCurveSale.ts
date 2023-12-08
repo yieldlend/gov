@@ -50,9 +50,9 @@ describe("BondingCurveSale", () => {
 
   describe("Test Referral system", () => {
     it("Should generate referral code properly", async function () {
-      const { sale, otherAccount, owner } = await loadFixture(fixture);
-      expect(await sale.referralCode(otherAccount.address)).eq("400325064");
-      expect(await sale.referralCode(owner.address)).eq("4290323046");
+      const { sale, otherAccount: other, owner } = await loadFixture(fixture);
+      expect(await sale.referralCode(other.address)).eq("15449397688776");
+      expect(await sale.referralCode(owner.address)).eq("133934255514214");
     });
 
     it("Should accumulate referral earnings properly", async function () {
