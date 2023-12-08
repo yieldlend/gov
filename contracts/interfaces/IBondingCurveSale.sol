@@ -22,6 +22,9 @@ interface IBondingCurveSale {
     /// @notice How much tokens need to be sold
     function reserveToSell() external returns (uint256);
 
+    /// @notice How much tokens will be in LP
+    function reserveInLP() external returns (uint256);
+
     /// @notice How much ETH needs to be raised
     function ethToRaise() external returns (uint256);
 
@@ -35,8 +38,6 @@ interface IBondingCurveSale {
     /// @param ethRaised The amount of ETH raised
     /// @return The amount of tokens that should be sold
     function bondingCurveETH(uint256 ethRaised) external view returns (uint256);
-
-    function latestAnswer() external view returns (int256);
 
     /// @notice Participate in the bonding curve sale with ETH
     function mint() external payable;

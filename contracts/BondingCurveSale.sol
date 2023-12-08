@@ -76,7 +76,6 @@ contract BondingCurveSale is
         token = _token;
     }
 
-    /// @inheritdoc IBondingCurveSale
     function latestAnswer() external view returns (int256) {
         uint256 ethInLP = (ethRaised * 3) / 5;
         int256 ethPrice = ethUsdPrice.latestAnswer();
