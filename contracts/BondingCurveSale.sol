@@ -18,6 +18,7 @@ pragma solidity ^0.8.9;
 // Twitter: https://twitter.com/yieldlend
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAggregatorV3Interface} from "./interfaces/IAggregatorV3Interface.sol";
 import {IBondingCurveSale} from "./interfaces/IBondingCurveSale.sol";
@@ -28,6 +29,7 @@ import "hardhat/console.sol";
 contract BondingCurveSale is
     IBondingCurveSale,
     Ownable,
+    ReentrancyGuard,
     IAggregatorV3Interface
 {
     uint256 private constant PRECISION = 1e18;
@@ -38,6 +40,8 @@ contract BondingCurveSale is
     uint256 public immutable ethToRaise;
     uint256 public immutable reserveInLP;
     uint256 public immutable reserveToSell;
+
+    mapping(uint256 => uint256) referralEarnings;
 
     // variables to track
     uint256 public ethRaised;
@@ -84,27 +88,32 @@ contract BondingCurveSale is
 
     /// @inheritdoc IBondingCurveSale
     function mint() external payable {
-        // calculate tokens sold baesd on the ETH raised
-        ethRaised += msg.value;
-        uint256 newTokensSold = bondingCurveETH(ethRaised);
-        uint256 reserveSoldToBuyer = newTokensSold - reserveSold;
-        reserveSold = newTokensSold;
+        _mint(msg.sender, (0));
+    }
 
-        // send 3/5th to LP
-        payable(destination).transfer((msg.value * 3) / 5);
-
-        // send 2/5th to marketing wallet
-        payable(owner()).transfer((msg.value * 2) / 5);
-
-        // give the user the tokens that were sold
-        token.transfer(msg.sender, reserveSoldToBuyer);
-
-        emit Minted(msg.sender, reserveSoldToBuyer, msg.value);
+    /// @inheritdoc IBondingCurveSale
+    function mintWithReferral(uint256 code) external payable {
+        _mint(msg.sender, code);
     }
 
     /// @inheritdoc IBondingCurveSale
     function setDestination(address _destination) external onlyOwner {
         destination = _destination;
+    }
+
+    /// @inheritdoc IBondingCurveSale
+    function referralCode(address who) external view returns (uint256) {
+        return _referralCode(who);
+    }
+
+    /// @inheritdoc IBondingCurveSale
+    function claimReferralRewards() external nonReentrant {
+        uint256 code = _referralCode(msg.sender);
+        uint256 earnings = referralEarnings[code];
+        require(earnings > 0, "no earnings");
+        referralEarnings[code] = 0;
+        payable(msg.sender).transfer(earnings);
+        emit ReferralRewardClaimed(code, msg.sender, earnings);
     }
 
     /// @inheritdoc IBondingCurveSale
@@ -119,5 +128,36 @@ contract BondingCurveSale is
             uint256 amount = IERC20(tkn).balanceOf(address(this));
             IERC20(tkn).transfer(msg.sender, amount);
         }
+    }
+
+    function _mint(address who, uint256 code) internal nonReentrant {
+        // calculate tokens sold baesd on the ETH raised
+        ethRaised += msg.value;
+        uint256 newTokensSold = bondingCurveETH(ethRaised);
+        uint256 reserveSoldToBuyer = newTokensSold - reserveSold;
+        reserveSold = newTokensSold;
+
+        // send 3/5th to LP
+        payable(destination).transfer((msg.value * 3) / 5);
+
+        // send 2/5th to the admin (and referral if it exists)
+        if (code == 0) {
+            // send 2/5th to admin
+            payable(owner()).transfer((msg.value * 2) / 5);
+        } else {
+            // send 1.5/5th to admin and keep 0.5/5th to the referrer
+            payable(owner()).transfer((msg.value * 3) / 10);
+        }
+
+        // give the user the tokens that were sold
+        token.transfer(who, reserveSoldToBuyer);
+
+        emit Minted(who, code, reserveSoldToBuyer, msg.value);
+    }
+
+    function _referralCode(address who) internal pure returns (uint256) {
+        // calculate tokens sold baesd on the ETH raised
+        uint256 code = uint256(uint160(who));
+        return (code * code) & 0xffffffff;
     }
 }
