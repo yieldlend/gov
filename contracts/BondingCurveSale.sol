@@ -34,17 +34,29 @@ contract BondingCurveSale is
 {
     uint256 private constant PRECISION = 1e18;
 
+    /// @inheritdoc IBondingCurveSale
     address public destination;
+
     IAggregatorV3Interface public immutable ethUsdPrice;
+
+    /// @inheritdoc IBondingCurveSale
     IERC20 public immutable token;
+
+    /// @inheritdoc IBondingCurveSale
     uint256 public immutable ethToRaise;
+
+    /// @inheritdoc IBondingCurveSale
     uint256 public immutable reserveInLP;
+
+    /// @inheritdoc IBondingCurveSale
     uint256 public immutable reserveToSell;
 
     mapping(uint256 => uint256) public referralEarnings;
 
-    // variables to track
+    /// @inheritdoc IBondingCurveSale
     uint256 public ethRaised;
+
+    /// @inheritdoc IBondingCurveSale
     uint256 public reserveSold;
 
     constructor(
@@ -64,6 +76,7 @@ contract BondingCurveSale is
         token = _token;
     }
 
+    /// @inheritdoc IBondingCurveSale
     function latestAnswer() external view returns (int256) {
         uint256 ethInLP = (ethRaised * 3) / 5;
         int256 ethPrice = ethUsdPrice.latestAnswer();
