@@ -17,7 +17,7 @@ contract Epoch {
     function initEpoch(uint256 _period, uint256 _startTime) internal {
         period = _period;
         startTime = _startTime;
-        lastExecutedAt = 0;
+        lastExecutedAt = block.timestamp;
     }
 
     /* ========== Modifier ========== */

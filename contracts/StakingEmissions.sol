@@ -38,9 +38,9 @@ contract StakingEmissions is Initializable, Pausable, Epoch, Ownable {
         _distribute();
     }
 
-    function _distribute() internal checkEpoch whenPaused {
-        token.transfer(address(feeDistributor), amtPerEpoch);
-        feeDistributor.checkpointTotalSupply();
+    function _distribute() internal checkEpoch whenNotPaused {
         feeDistributor.checkpointToken();
+        feeDistributor.checkpointTotalSupply();
+        token.transfer(address(feeDistributor), amtPerEpoch);
     }
 }

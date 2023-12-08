@@ -28,8 +28,6 @@ contract FeeDistributor is IFeeDistributor, ReentrancyGuard, Initializable {
 
     uint256[1000000000000000] public veSupply; // VE total supply at week bounds
 
-    bool public isKilled;
-
     function initialize(
         address _votingEscrow,
         address _token
@@ -236,8 +234,6 @@ contract FeeDistributor is IFeeDistributor, ReentrancyGuard, Initializable {
     }
 
     function _claimWithChecks(uint256 nftId) internal returns (uint256) {
-        require(!isKilled, "killed");
-
         if (block.timestamp >= timeCursor)
             _checkpointTotalSupply(block.timestamp);
 
@@ -270,7 +266,6 @@ contract FeeDistributor is IFeeDistributor, ReentrancyGuard, Initializable {
     function claimMany(
         uint256[] memory nftIds
     ) external override nonReentrant returns (bool) {
-        require(!isKilled, "killed");
         if (block.timestamp >= timeCursor)
             _checkpointTotalSupply(block.timestamp);
 
