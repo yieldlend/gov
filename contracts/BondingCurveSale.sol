@@ -84,7 +84,7 @@ contract BondingCurveSale is
         uint256 result = (((token.totalSupply() * ethInLP)) *
             uint256(ethPrice)) /
             reserveInLP /
-            1e30;
+            1e26;
 
         return int256(result);
     }
