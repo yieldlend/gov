@@ -40,6 +40,14 @@ async function main() {
   const vesting = await StreamedVesting.deploy();
   console.log("vesting at", vesting.target);
 
+  const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
+  const feeDistributor = await FeeDistributor.deploy();
+  console.log("feeDistributor at", feeDistributor.target);
+
+  const StakingEmissions = await ethers.getContractFactory("StakingEmissions");
+  const stakingEmissions = await StakingEmissions.deploy();
+  console.log("stakingEmissions at", stakingEmissions.target);
+
   const BonusPool = await ethers.getContractFactory("BonusPool");
   const bonusPool = await BonusPool.deploy(token.target, vesting.target);
   console.log("bonusPool at", bonusPool.target);
@@ -53,6 +61,13 @@ async function main() {
       locker.target,
       bonusPool.target
     )
+  );
+
+  await feeDistributor.initialize(locker.target, vestedToken.target);
+  await stakingEmissions.initialize(
+    feeDistributor.target,
+    vestedToken.target,
+    4807692n * e18
   );
 
   // 100000000000n
@@ -74,7 +89,7 @@ async function main() {
 
   // send 10% for staking rewards
   await waitForTx(token.transfer(vesting.target, 10n * supply));
-  await waitForTx(vestedToken.transfer(admin, 10n * supply));
+  await waitForTx(vestedToken.transfer(stakingEmissions.target, 10n * supply));
 
   // whitelist the bonding sale contract
   await waitForTx(vestedToken.addwhitelist(sale.target, true));
@@ -111,6 +126,14 @@ async function main() {
   await hre.run("verify:verify", {
     address: bonusPool.target,
     constructorArguments: [token.target, vesting.target],
+  });
+  await hre.run("verify:verify", {
+    address: feeDistributor.target,
+    constructorArguments: [],
+  });
+  await hre.run("verify:verify", {
+    address: stakingEmissions.target,
+    constructorArguments: [],
   });
   await hre.run("verify:verify", {
     address: sale.target,

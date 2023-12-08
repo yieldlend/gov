@@ -31,8 +31,8 @@
   "scripts": {
     "test": "NODE_ENV=test hardhat test",
     "compile": "yarn hardhat compile",
-    "deploy": "yarn hardhat deploy-zksync --script deploy-feed.ts",
-    "update-feed": "yarn hardhat deploy-zksync --script update-feed.ts"
+    "deploy:testnet": "yarn hardhat run scripts/deploy-testnet.ts --network baseGoerli",
+    "deploy:mainnet": "yarn hardhat run scripts/deploy-mainnet.ts --network base"
   },
   "dependencies": {
     "@layerzerolabs/solidity-examples": "^1.0.0",
