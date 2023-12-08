@@ -19,7 +19,7 @@ export async function deployFixture() {
   const mockOracle = await MockAggregator.deploy(2100n * 10n ** 8n);
 
   const BondingCurve = await ethers.getContractFactory("BondingCurveSale");
-  const bondingCurveSale = await BondingCurve.deploy(
+  const sale = await BondingCurve.deploy(
     token.target, // address _destination,
     mockOracle.target, // address _ethUsdPrice,
     vestedToken.target, // IERC20 _token,
@@ -49,14 +49,14 @@ export async function deployFixture() {
   await token.transfer(token.target, 10n * supply);
 
   // send 20% vested tokens to bonding curve
-  await vestedToken.transfer(bondingCurveSale.target, 20n * supply);
+  await vestedToken.transfer(sale.target, 20n * supply);
   await token.transfer(vesting.target, 20n * supply);
 
   // send 47% for emissions
   await token.transfer(vesting.target, 20n * supply);
 
   // whitelist the bonding sale contract
-  await vestedToken.addwhitelist(bondingCurveSale.target, true);
+  await vestedToken.addwhitelist(sale.target, true);
   await token.bulkExcludeFromFees(
     [vesting.target, locker.target, bonusPool.target],
     true
@@ -70,6 +70,7 @@ export async function deployFixture() {
     owner,
     locker,
     otherAccount,
-    bondingCurveSale,
+    sale,
+    ethers,
   };
 }

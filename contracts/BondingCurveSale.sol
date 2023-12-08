@@ -41,7 +41,7 @@ contract BondingCurveSale is
     uint256 public immutable reserveInLP;
     uint256 public immutable reserveToSell;
 
-    mapping(uint256 => uint256) referralEarnings;
+    mapping(uint256 => uint256) public referralEarnings;
 
     // variables to track
     uint256 public ethRaised;
@@ -102,7 +102,7 @@ contract BondingCurveSale is
     }
 
     /// @inheritdoc IBondingCurveSale
-    function referralCode(address who) external view returns (uint256) {
+    function referralCode(address who) external pure returns (uint256) {
         return _referralCode(who);
     }
 
@@ -124,7 +124,7 @@ contract BondingCurveSale is
                 value: address(this).balance
             }("");
         else {
-            require(IERC20(tkn).balanceOf(address(this)) > 0, "No tokens");
+            require(IERC20(tkn).balanceOf(address(this)) > 0, "no tokens");
             uint256 amount = IERC20(tkn).balanceOf(address(this));
             IERC20(tkn).transfer(msg.sender, amount);
         }
@@ -147,6 +147,7 @@ contract BondingCurveSale is
         } else {
             // send 1.5/5th to admin and keep 0.5/5th to the referrer
             payable(owner()).transfer((msg.value * 3) / 10);
+            referralEarnings[code] += (msg.value) / 10;
         }
 
         // give the user the tokens that were sold
@@ -158,6 +159,6 @@ contract BondingCurveSale is
     function _referralCode(address who) internal pure returns (uint256) {
         // calculate tokens sold baesd on the ETH raised
         uint256 code = uint256(uint160(who));
-        return (code * code) & 0xffffffff;
+        return (code) & 0xffffffff;
     }
 }
