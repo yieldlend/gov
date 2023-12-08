@@ -4,7 +4,7 @@ export const e18 = BigInt(10) ** 18n;
 
 export async function deployFixture() {
   // Contracts are deployed using the first signer/account by default
-  const [owner, otherAccount] = await ethers.getSigners();
+  const [owner, otherAccount, vault] = await ethers.getSigners();
 
   const YieldLend = await ethers.getContractFactory("YieldLend");
   const token = await YieldLend.connect(owner).deploy();
@@ -17,6 +17,12 @@ export async function deployFixture() {
 
   const MockAggregator = await ethers.getContractFactory("MockAggregator");
   const mockOracle = await MockAggregator.deploy(2100n * 10n ** 8n);
+
+  const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
+  const feeDistributor = await FeeDistributor.deploy();
+
+  const StakingEmissions = await ethers.getContractFactory("StakingEmissions");
+  const stakingEmissions = await StakingEmissions.deploy();
 
   const BondingCurve = await ethers.getContractFactory("BondingCurveSale");
   const sale = await BondingCurve.deploy(
@@ -41,8 +47,16 @@ export async function deployFixture() {
     bonusPool.target
   );
 
-  // fund 5% to staking bonus
+  await feeDistributor.initialize(locker.target, vestedToken.target);
+  await stakingEmissions.initialize(
+    feeDistributor.target,
+    vestedToken.target,
+    4807692n * e18
+  );
+
   const supply = (100000000000n * e18) / 100n;
+
+  // fund 5% unvested to staking bonus
   await token.transfer(bonusPool.target, 5n * supply);
 
   // send 10% to liquidity
@@ -52,25 +66,38 @@ export async function deployFixture() {
   await token.transfer(vesting.target, 20n * supply);
   await vestedToken.transfer(sale.target, 20n * supply);
 
+  // send 10% vested tokens to the staking contract
+  await token.transfer(vesting.target, 10n * supply);
+  await vestedToken.transfer(stakingEmissions.target, 10n * supply);
+
   // send 47% for emissions
   await token.transfer(vesting.target, 47n * supply);
+  await vestedToken.transfer(vault.address, 47n * supply);
 
   // whitelist the bonding sale contract
   await vestedToken.addwhitelist(sale.target, true);
+  await vestedToken.addwhitelist(stakingEmissions.target, true);
+  await vestedToken.addwhitelist(feeDistributor.target, true);
   await token.bulkExcludeFromFees(
     [vesting.target, locker.target, bonusPool.target],
     true
   );
 
+  // start vesting and staking emissions (for test)
+  await vesting.start();
+  await stakingEmissions.start();
+
   return {
-    token,
     bonusPool,
-    vesting,
-    vestedToken,
-    owner,
+    ethers,
+    feeDistributor,
     locker,
     otherAccount,
+    owner,
     sale,
-    ethers,
+    stakingEmissions,
+    token,
+    vestedToken,
+    vesting,
   };
 }

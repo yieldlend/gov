@@ -20,11 +20,13 @@ pragma solidity ^0.8.9;
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Burnable} from "./interfaces/IERC20Burnable.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {IStreamedVesting} from "./interfaces/IStreamedVesting.sol";
 import {IYieldLocker} from "./interfaces/IYieldLocker.sol";
 import {IBonusPool} from "./interfaces/IBonusPool.sol";
 
-contract StreamedVesting is IStreamedVesting, Initializable {
+contract StreamedVesting is IStreamedVesting, Ownable, Pausable, Initializable {
     IERC20 public underlying;
     IERC20Burnable public vestedToken;
     IYieldLocker public locker;
@@ -47,11 +49,18 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         vestedToken = _vestedToken;
         locker = _locker;
         bonusPool = _bonusPool;
-
         underlying.approve(address(_locker), type(uint256).max);
+
+        _transferOwnership(msg.sender);
+        _pause();
     }
 
-    function createVest(uint256 amount) external {
+    function start() external onlyOwner {
+        _unpause();
+        renounceOwnership();
+    }
+
+    function createVest(uint256 amount) external whenNotPaused {
         vestedToken.burnFrom(msg.sender, amount);
         lastId++;
 
@@ -70,7 +79,7 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         emit VestingCreated(msg.sender, lastId, amount, block.timestamp);
     }
 
-    function stakeTo4Year(uint256 id) external {
+    function stakeTo4Year(uint256 id) external whenNotPaused {
         VestInfo memory vest = vests[id];
         require(msg.sender == vest.who, "not owner");
 
@@ -95,7 +104,7 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         locker.createLockFor(lockAmount, 86400 * 365 * 4, msg.sender);
     }
 
-    function claimVest(uint256 id) external {
+    function claimVest(uint256 id) external whenNotPaused {
         VestInfo memory vest = vests[id];
         require(msg.sender == vest.who, "not owner");
 
@@ -111,7 +120,7 @@ contract StreamedVesting is IStreamedVesting, Initializable {
         emit TokensReleased(msg.sender, id, val);
     }
 
-    function claimVestEarlyWithPenalty(uint256 id) external {
+    function claimVestEarlyWithPenalty(uint256 id) external whenNotPaused {
         VestInfo memory vest = vests[id];
         require(msg.sender == vest.who, "not owner");
 
