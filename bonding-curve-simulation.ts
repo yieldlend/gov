@@ -1,8 +1,8 @@
-const totalSupply = 100000000;
-const ethPrice = 2100;
+const totalSupply = 100000000000;
+const ethPrice = 2350;
 
 const usdToRaise = 1000000;
-const ethToRaise = 1000;
+const ethToRaise = 1500;
 const reserveToSell = totalSupply * 0.2;
 const reserveInLP = totalSupply * 0.1;
 
@@ -54,7 +54,7 @@ console.log(
 console.log("\n\nETH raise:");
 
 const check = (n: number) => {
-  const valuation = valuationEthFromRaise(reserveInLP, n * 0.8, totalSupply);
+  const valuation = valuationEthFromRaise(reserveInLP, n * 0.6, totalSupply);
   console.log(`\nvaluation at ${n} eth raised`, valuation);
   console.log(`price`, valuation / totalSupply);
   console.log(
@@ -64,7 +64,7 @@ const check = (n: number) => {
 };
 
 // check(1);
-check(10);
+check(0.011);
 // check(25);
 // check(50);
 // check(100);
