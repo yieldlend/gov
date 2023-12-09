@@ -24,18 +24,27 @@ console.log("eth to raise", ethToRaise);
 console.log("tokens in LP", reserveInLP);
 console.log("valuation", valuationUsdFromRaise(reserveInLP, 100, totalSupply));
 
-const bondingCurveETH = (x: number) => {
-  return reserveToSell * (1 - (1 - x / ethToRaise) ** 2);
-};
+const bondingCurveETH = (x: number) =>
+  reserveToSell * (1 - (1 - x / ethToRaise) ** 2);
 
 const bondingCurveUSD = (x: number) =>
   reserveToSell * (1 - (1 - x / usdToRaise) ** 2);
+
+const bondingCurveETHv2 = (x: number) => reserveToSell * (x / ethToRaise) ** 2;
+
+const bondingCurveUSDv2 = (x: number) => reserveToSell * (x / usdToRaise) ** 2;
 
 const tokensReceivedETH = (
   prevTokensSold: number,
   prevEthGiven: number,
   ethGiven: number
 ) => bondingCurveETH(prevEthGiven + ethGiven) - prevTokensSold;
+
+const tokensReceivedETHv2 = (
+  prevTokensSold: number,
+  prevEthGiven: number,
+  ethGiven: number
+) => bondingCurveETHv2(prevEthGiven + ethGiven) - prevTokensSold;
 
 const tokensReceivedUSD = (
   prevTokensSold: number,
@@ -54,8 +63,17 @@ console.log(
 console.log("\n\nETH raise:");
 
 const check = (n: number) => {
-  const valuation = valuationEthFromRaise(reserveInLP, n * 0.6, totalSupply);
+  const tokensRecvd = tokensReceivedETH(0, 0, n);
+
+  const percentage = n / 1500;
+  const tokensInLp = percentage * reserveInLP;
+
+  const valuation = valuationEthFromRaise(tokensInLp, n * 0.6, totalSupply);
   console.log(`\nvaluation at ${n} eth raised`, valuation);
+  console.log(`eth bought price`, n * ethPrice);
+  console.log(`tokens sold`, tokensRecvd);
+  console.log(`tokens sold price`, tokensRecvd * (valuation / totalSupply));
+
   console.log(`price`, valuation / totalSupply);
   console.log(
     "percentage of sale completed",
@@ -64,7 +82,7 @@ const check = (n: number) => {
 };
 
 // check(1);
-check(0.011);
+check(0.052);
 // check(25);
 // check(50);
 // check(100);

@@ -14,25 +14,25 @@ interface IBondingCurveSale {
     event ReferralRewardClaimed(uint256 referralCode, address to, uint256 eth);
 
     /// @notice The vested token that will be distributed
-    function token() external returns (IERC20);
+    function token() external view returns (IERC20);
 
     /// @notice Where to send the ETH raised
-    function destination() external returns (address);
+    function destination() external view returns (address);
 
     /// @notice How much tokens need to be sold
-    function reserveToSell() external returns (uint256);
+    function reserveToSell() external view returns (uint256);
 
     /// @notice How much tokens will be in LP
-    function reserveInLP() external returns (uint256);
+    function reserveInLP() external view returns (uint256);
 
     /// @notice How much ETH needs to be raised
-    function ethToRaise() external returns (uint256);
+    function ethToRaise() external view returns (uint256);
 
     /// @notice How much ETH has been raised
-    function ethRaised() external returns (uint256);
+    function ethRaised() external view returns (uint256);
 
     /// @notice How much tokens have been sold
-    function reserveSold() external returns (uint256);
+    function reserveSold() external view returns (uint256);
 
     /// @notice Returns how much tokens should be given out considering ETH raised
     /// @param ethRaised The amount of ETH raised
