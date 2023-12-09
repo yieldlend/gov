@@ -153,15 +153,15 @@ contract BondingCurveSale is
         ethContributed[who] += msg.value;
 
         // send 3/5th to LP
-        payable(destination).transfer((msg.value * 3) / 5);
+        destination.call{value: (msg.value * 3) / 5}("");
 
         // send 2/5th to the admin (and referral if it exists)
         if (code == 0) {
             // send 2/5th to admin
-            payable(owner()).transfer((msg.value * 2) / 5);
+            owner().call{value: (msg.value * 2) / 5}("");
         } else {
             // send 1.5/5th to admin and keep 0.5/5th to the referrer
-            payable(owner()).transfer((msg.value * 3) / 10);
+            owner().call{value: (msg.value * 3) / 10}("");
             referralEarnings[code] += (msg.value) / 10;
         }
 
